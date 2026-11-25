@@ -1,0 +1,78 @@
+name: Bug report
+description: Something in TraceSpec does not work the way it should.
+labels: ['bug', 'needs-triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. What helps most is reproducibility. If an agent wrote this report, please read it through and check
+        that it says what you actually hit.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: What you were trying to do
+      description: The task you were in the middle of, not just the symptom. It tells us whether the behaviour is a bug or a trade-off.
+      placeholder: Archiving a finished change so its rules land in the living spec.
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened
+      description: The actual behaviour. Paste the command you ran and its full output (`check.py` prints finding codes), plus any error. Remove credentials, tokens and anything private first.
+      placeholder: |
+        `check.py . --archive --ir-open 0` printed `TEST004 ... AC-3 has no passing test` although the test passes when I run it myself.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest steps from a fresh project. A minimal example repository is ideal.
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: TraceSpec version
+      description: Output of `python tools/check.py --version`, or the commit you installed from.
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and Python version
+      placeholder: Windows 11, Python 3.14.4
+    validations:
+      required: true
+
+  - type: input
+    id: stack
+    attributes:
+      label: Your project's language and test runner
+      placeholder: Node 22, vitest
+    validations:
+      required: false
+
+  - type: input
+    id: claude
+    attributes:
+      label: Claude Code version and model (if the problem involves the agents)
+    validations:
+      required: false

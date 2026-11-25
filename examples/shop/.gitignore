@@ -1,0 +1,4 @@
+.pytest_cache/
+__pycache__/
+.tracespec-junit.xml
+.tracespec-check.json

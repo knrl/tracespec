@@ -1,0 +1,130 @@
+{
+  "process": "tracespec",
+  "processVersion": "2.0",
+  "activeChange": null,
+  "changes": {
+    "add-cart": {
+      "title": "Add a cart",
+      "tier": "standard",
+      "phase": "archived",
+      "spec": {
+        "version": "1.0",
+        "status": "approved",
+        "approvedBy": [
+          "Example Developer"
+        ],
+        "approvedOn": "2026-11-25",
+        "fingerprint": "d6a9f9b01b3594e0",
+        "rows": {
+          "ADDED:FR-1": "696092e4d1b2",
+          "ADDED:FR-2": "7cd75253d80e",
+          "ADDED:AC-1": "e5ccd962536e",
+          "ADDED:AC-2": "ae095e10e811"
+        },
+        "baseRows": {}
+      },
+      "baselineTests": [
+        "test_catalog::test_price_of_a_known_sku"
+      ],
+      "baselineDirty": [],
+      "gates": [
+        {
+          "step": "approve",
+          "version": "1.0",
+          "approvedBy": [
+            "Example Developer"
+          ],
+          "words": "Yes, approve",
+          "date": "2026-11-25",
+          "note": ""
+        },
+        {
+          "step": "archive",
+          "version": "1.0",
+          "approvedBy": [
+            "automatic"
+          ],
+          "words": "archived: every criterion passes, no review finding open, no file outside the affected areas",
+          "date": "2026-11-25",
+          "note": ""
+        }
+      ],
+      "archivedAs": ".tracespec/changes/archive/2026-11-25-add-cart"
+    },
+    "add-discount": {
+      "title": "Add a discount",
+      "tier": "standard",
+      "phase": "archived",
+      "spec": {
+        "version": "1.0",
+        "status": "approved",
+        "approvedBy": [
+          "Example Developer"
+        ],
+        "approvedOn": "2026-11-25",
+        "fingerprint": "ca759e75af09cc7f",
+        "rows": {
+          "ADDED:FR-3": "2d06d13253b6",
+          "ADDED:AC-3": "0352bc2b29df",
+          "MODIFIED:FR-1": "b7eaa2b03c7c",
+          "MODIFIED:AC-1": "62b4659cd2cb",
+          "REMOVED:FR-2": "91bd9399dc40",
+          "REMOVED:AC-2": "3f224763cb6c"
+        },
+        "baseRows": {
+          "FR-1": "265d733a093e",
+          "AC-1": "02e866bc0764",
+          "FR-2": "ecc1b9b82cf5",
+          "AC-2": "e1d021d50770"
+        }
+      },
+      "baselineTests": [
+        "test_cart::test_AC1_total_is_the_sum_of_item_prices",
+        "test_cart::test_AC2_a_gift_card_is_accepted",
+        "test_catalog::test_price_of_a_known_sku"
+      ],
+      "baselineDirty": [],
+      "gates": [
+        {
+          "step": "approve",
+          "version": "1.0",
+          "approvedBy": [
+            "Example Developer"
+          ],
+          "words": "Yes, approve",
+          "date": "2026-11-25",
+          "note": ""
+        },
+        {
+          "step": "archive",
+          "version": "1.0",
+          "approvedBy": [
+            "automatic"
+          ],
+          "words": "archived: every criterion passes, no review finding open, no file outside the affected areas",
+          "date": "2026-11-25",
+          "note": ""
+        }
+      ],
+      "archivedAs": ".tracespec/changes/archive/2026-11-25-add-discount"
+    }
+  },
+  "layout": {
+    "tests": [
+      "tests/**",
+      "**/test_*.py",
+      "**/*_test.py"
+    ],
+    "code": [
+      "shop/**"
+    ],
+    "testCmd": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "--junitxml=.tracespec-junit.xml"
+    ],
+    "junit": ".tracespec-junit.xml"
+  }
+}

@@ -5,8 +5,8 @@
     python install.py --claude-dir DIR      use DIR instead of ~/.claude
     python install.py --skills-dir S --agents-dir A
 
-The skill is copied (the folders SKILL.md, process.md, workflows, templates and tools are replaced, so an update leaves no
-stale files). If this repository is already cloned to <skills dir>/tracespec, nothing is copied and only the two agents are
+The skill is copied (SKILL.md, process.md, VERSION and the workflows, templates and tools folders are replaced, so an update
+leaves no stale files). If this repository is already cloned to <skills dir>/tracespec, nothing is copied and only the two agents are
 written. The agent files in templates/agents contain a {skill_dir} placeholder for the hook; it is replaced by the real path.
 Standard library only. Restart Claude Code afterwards: skills and agents are read when a session starts.
 """
@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ITEMS = ["SKILL.md", "process.md", "workflows", "templates", "tools"]
+ITEMS = ["SKILL.md", "process.md", "VERSION", "workflows", "templates", "tools"]
 
 
 def install(skills_dir: Path, agents_dir: Path) -> list[str]:

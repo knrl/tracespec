@@ -1,0 +1,27 @@
+name: Documentation
+description: Something in the docs is missing, wrong or unclear.
+labels: ['documentation', 'needs-triage']
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Which page or section
+      description: A link or a file path, for example docs/getting-started.md.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing
+      description: What you expected to find, or what is incorrect, and what you did because of it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: fix
+    attributes:
+      label: What would fix it
+      description: Suggested wording, or the question the page should answer.
+    validations:
+      required: false

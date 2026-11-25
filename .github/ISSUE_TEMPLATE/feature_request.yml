@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest a change to how TraceSpec behaves or something it should do.
+labels: ['enhancement', 'needs-triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You do not need a solution. Sometimes the behaviour you hit is a deliberate trade-off, and that is what we want to talk about.
+        Please read the design rules in CONTRIBUTING.md first: checks must be deterministic and the tool uses only the standard library.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you were trying to do and what got in the way.
+    validations:
+      required: true
+
+  - type: textarea
+    id: who
+    attributes:
+      label: Who else it affects
+      description: Your stack, team size and workflow, and whether others would hit this too.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried instead
+    validations:
+      required: false
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: An idea, if you have one
+      description: A rough shape is enough. Say how a check could decide it without asking a model.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: build
+    attributes:
+      label: Would you like to build it?
+      options:
+        - 'Yes, I would like to open the pull request'
+        - 'Maybe, with guidance'
+        - 'No, I am only suggesting it'
+    validations:
+      required: true

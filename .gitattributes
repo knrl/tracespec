@@ -1,0 +1,5 @@
+# Source and docs are LF everywhere, so file hashes and diffs do not depend on the checkout's OS.
+* text=auto eol=lf
+*.db binary
+*.png binary
+*.jpg binary

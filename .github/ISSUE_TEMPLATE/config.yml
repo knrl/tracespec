@@ -1,0 +1,9 @@
+# The forms carry what a maintainer needs to act on an issue. Anything they do not fit goes to the links below.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/knrl/tracespec/security/advisories/new
+    about: Please report vulnerabilities privately, not in a public issue. See SECURITY.md.
+  - name: Troubleshooting guide
+    url: https://github.com/knrl/tracespec/blob/main/docs/troubleshooting.md
+    about: Common failures (agents not found, CANNOT RUN, drift findings) with their fixes.

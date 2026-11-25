@@ -1006,6 +1006,9 @@ def main(argv: list[str]) -> int:
     if not argv:
         print(__doc__)
         return 2
+    if argv[0] in ("--version", "-V"):
+        print(read(Path(__file__).resolve().parent.parent / "VERSION") or "unknown", end="")
+        return 0
     if argv[0] == "--fingerprint" and len(argv) == 2:
         text = read(Path(argv[1]))
         if text is None:

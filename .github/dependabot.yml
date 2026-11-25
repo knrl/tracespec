@@ -1,0 +1,11 @@
+version: 2
+
+# TraceSpec has no package dependencies (standard library only). The only thing to keep current is the set of
+# GitHub Actions the workflows use; they are pinned by commit SHA, so Dependabot proposes the new SHA with its tag.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci

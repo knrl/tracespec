@@ -1,0 +1,2 @@
+{"change": "add-cart", "date": "2026-11-25", "event": "archive", "prev": "genesis", "rows": ["ADDED:AC-1", "ADDED:AC-2", "ADDED:FR-1", "ADDED:FR-2"], "seq": 1, "specHash": "02495823723dde05", "traceHash": "4752469a0a38b17b"}
+{"change": "add-discount", "date": "2026-11-25", "event": "archive", "prev": "f0b1f694229ba4ef", "rows": ["ADDED:AC-3", "ADDED:FR-3", "MODIFIED:AC-1", "MODIFIED:FR-1", "REMOVED:AC-2", "REMOVED:FR-2"], "seq": 2, "specHash": "30ddc9d0e96314ba", "traceHash": "a47fb837f772513d"}
