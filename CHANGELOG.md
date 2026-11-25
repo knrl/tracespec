@@ -16,6 +16,14 @@ format of what TraceSpec writes into a project; the notes say so when they do.
 
 ### Fixed
 
+- A test result for a criterion that no baseline links to code yet (a change in flight) now goes stale when any code or test file
+  changes. It used to show `PASS (fresh)` forever.
+- The audit notices a deleted capability folder (archives now keep `specs/index.json`; a project that has not archived since this
+  version gets the index on its next archive).
+- Binary files in the code paths get no symbols (they used to yield symbols named with control characters).
+- `TASK000` can fire: a change with no `T-n` tasks at all is reported once, instead of one `TASK001` per criterion.
+- `--list` shows archived changes as finished, not "no tasks".
+
 - A corrupt or truncated `.tracespec.json` is now an error (exit 2) that leaves the file alone. It used to read as "no changes", and
   the next write could have erased it. The state file is written atomically.
 - One failing test that names a criterion now uncovers it in `--audit`, `--reconfirm` and `--task-done`, even when another test that

@@ -8,6 +8,7 @@ here (they are slow): a recorded result is marked stale instead, as soon as a fi
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import os
 import time
@@ -56,7 +57,8 @@ def sync(project: Path, layout: dict) -> dict:
                     text = path.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
-                res = symbols.resolve(project, rel, text)
+                res = ({"resolver": "binary", "symbols": []} if chr(0) in text       # a binary file has no symbols to link
+                       else symbols.resolve(project, rel, text))
                 c.execute("INSERT OR REPLACE INTO symcache VALUES (?, ?, ?, ?)", (rel, h, res["resolver"], json.dumps(res["symbols"])))
                 stats["reparsed"] += 1
         for rel in set(known) | set(parsed):
@@ -82,8 +84,13 @@ def current_files(project: Path) -> dict[str, str]:
         return {p: h for p, h in c.execute("SELECT path, hash FROM filecache")}
 
 
+WHOLE_TREE = "*"      # the basis of a result that no baseline links to code yet: any change to any code or test file counts
+
+
 def hash_now(node: str, syms: dict, files: dict) -> str | None:
-    """The current hash of a symbol id ('path::name') or a file path."""
+    """The current hash of a symbol id ('path::name'), a file path, or WHOLE_TREE (all of them together)."""
+    if node == WHOLE_TREE:
+        return hashlib.sha1("|".join(f"{p}:{h}" for p, h in sorted(files.items())).encode()).hexdigest()[:16]
     if "::" in node:
         s = syms.get(node)
         return s["hash"] if s else None
@@ -141,7 +148,7 @@ def record_run(project: Path, cases: list[dict], basis: dict[str, list[str]]) ->
             live = [x for x in by_ac.get(ac, []) if x["status"] != "skip"]
             status = ("NO TEST" if not live else "FAIL" if any(x["status"] in ("fail", "error") for x in live) else "PASS")
             c.execute("INSERT INTO acrun VALUES (?, ?, ?, ?)", (ac, status, json.dumps([x["name"] for x in by_ac.get(ac, [])]), now))
-            for node in basis.get(ac, []):
+            for node in basis.get(ac) or [WHOLE_TREE]:     # a criterion of a change in flight has no baseline yet
                 h = hash_now(node, syms, files)
                 if h:
                     c.execute("INSERT OR REPLACE INTO acbasis VALUES (?, ?, ?)", (ac, node, h))

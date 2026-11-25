@@ -20,7 +20,7 @@ import current
 import links
 import living
 import store
-from common import classify, fingerprint_text, specs_dir
+from common import classify, fingerprint_text, specs_dir, write_atomic
 
 LEAF = ("symbol", "test", "file")
 ROW_KINDS = ("rule", "criterion", "nongoal")
@@ -57,6 +57,31 @@ def passing_ids(layout: dict, cases: list[dict] | None) -> set[str]:
     return ok - bad
 
 
+def index_path(project: Path) -> Path:
+    return specs_dir(project) / "index.json"
+
+
+def read_index(project: Path) -> list[str] | None:
+    """The capabilities an archive or reconfirm has ever written, or None for a project from before the index existed.
+    It lets the audit notice a capability folder that was deleted."""
+    try:
+        data = json.loads(index_path(project).read_text(encoding="utf-8"))
+        return [c for c in data.get("capabilities", []) if isinstance(c, str)]
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def note_capability(project: Path, cap: str) -> None:
+    known = read_index(project)
+    fresh = known is None
+    if fresh:                               # first time: everything that already has a ledger
+        root = specs_dir(project)
+        known = [d.name for d in root.iterdir() if d.is_dir() and (d / "history.jsonl").is_file()] if root.is_dir() else []
+    if fresh or cap not in known:
+        known = sorted({*known, cap})
+        write_atomic(index_path(project), json.dumps({"capabilities": known}, indent=2) + "\n")
+
+
 def append_ledger(project: Path, cap: str, entry: dict) -> None:
     lines = ledger_lines(project, cap)
     prev = line_hash(lines[-1]) if lines else "genesis"
@@ -65,6 +90,7 @@ def append_ledger(project: Path, cap: str, entry: dict) -> None:
     p.mkdir(parents=True, exist_ok=True)
     with open(p / "history.jsonl", "a", encoding="utf-8", newline="\n") as f:
         f.write(line + "\n")
+    note_capability(project, cap)
 
 
 def verify_ledger(project: Path, cap: str, current_spec_hash: str, current_trace_hash: str | None = None) -> list[str]:
@@ -228,6 +254,9 @@ def audit(project: Path, layout: dict, cases: list[dict] | None) -> list[dict]:
     names = sorted(d.name for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
     passing = passing_ids(layout, cases)
     all_ac: set[str] = set()
+    for cap in sorted(set(read_index(project) or []) - set(names)):
+        out.append(_finding(cap, "DRIFT-SPEC", "error", "the capability's folder was deleted (it is listed in specs/index.json): "
+                            "restore it from version control"))
     for cap in names:
         spec_file = cap_path(project, cap) / "spec.md"
         base = store.read_baseline(project, cap)

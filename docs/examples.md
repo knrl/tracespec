@@ -1,7 +1,7 @@
 # Examples
 
 The repository includes a finished project, [`examples/shop`](../examples/shop), built by running the real tools through two changes
-(`scripts/make_example.py`). Everything below is real output from it.
+(`scripts/make_example.py`). Everything below is real output from it. On this page `check.py` stands for `python ~/.claude/skills/tracespec/tools/check.py` (where `install.py` puts it).
 
 ## The story
 

@@ -1,5 +1,8 @@
 # Troubleshooting
 
+Start with `check.py <project> --doctor`: it checks Python, git, the agents and their guard hook, and your test command, and
+says how to fix what it finds. On this page `check.py` stands for `python ~/.claude/skills/tracespec/tools/check.py` (where `install.py` puts it).
+
 ## Setup
 
 **`/tracespec` or the agents are not found.** Skills and agents load when a Claude Code session starts. Run `python install.py`, then

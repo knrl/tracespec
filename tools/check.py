@@ -479,7 +479,7 @@ def evaluate(project: Path, layout: dict, problems: list[str], change: str | Non
         effective = tracing.effective_spec(caps_after, design_rows_text(ch["text"]))
         other_ac = {i for cap, st in caps.items() if cap not in caps_after for i in st["criteria"]}
         model = tracing.build(effective, ch["tasks_text"], cases, baseline, ops, other_ac)
-        stats.update(tracing.check(model, gate, ch["tasks_text"] is not None, baseline is not None, f.add))
+        stats.update(tracing.check(model, gate, bool(tracing.parse_tasks(ch["tasks_text"])), baseline is not None, f.add))
         stats["tests"] = len(cases) if cases is not None else None
         ctx["run_info"] = run_info
         ctx["model"] = model
@@ -859,7 +859,8 @@ def cmd_list(project) -> int:
     for name, feat in (state.get("changes") or {}).items():
         ch = load_change(project, name) if feat.get("phase") != "archived" else None
         t = tracing.parse_tasks(ch["tasks_text"]) if ch else {}
-        prog = f"{sum(1 for x in t.values() if x['done'])}/{len(t)} tasks" if t else "no tasks"
+        prog = (f"{sum(1 for x in t.values() if x['done'])}/{len(t)} tasks" if t
+                else "finished" if feat.get("phase") == "archived" else "no tasks")
         approved = ("approved" if feat.get("phase") == "archived" or (feat.get("spec") or {}).get("status") == "approved"
                     else "draft")
         rows.append((name, feat.get("phase") or "propose", approved, prog, feat.get("tier", "standard")))

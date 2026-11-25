@@ -107,7 +107,8 @@ one short overview of the feature in `docs/features/`. That is the whole loop.
 | `/tracespec trace <anything>` | Ask how a rule, test, file, function or ticket connects to the rest |
 | `/tracespec list`, `show <change>`, `view` | See what is in flight |
 
-Most of the time you only type the first line and answer questions; the agent moves through the other verbs itself.
+Most of the time you only type the first line and answer questions; the agent moves through the other verbs itself. New to a term
+(capability, delta, gate, drift)? The [glossary](docs/glossary.md) explains each in a line.
 
 ## Ask the trace
 
