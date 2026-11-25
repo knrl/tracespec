@@ -4,12 +4,18 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](docs/getting-started.md)
 
-**Traceable spec-driven development for Claude Code.** An automated requirements traceability matrix combined with
-acceptance-test-driven development, run by agents.
+**An automated requirements traceability matrix with acceptance-test-driven builds, run by agents.**
 
-You describe a change. Agents write the requirements and acceptance criteria, one agent writes tests that must fail, a different
-agent writes the code, and a checker, not a model, proves every requirement is covered by a passing test. Later, edits made outside
-the process are flagged as drift.
+**The goal is full coverage in both directions.** Every requirement is covered by acceptance criteria and a passing test, and every
+test and every function built for a change traces back to a requirement. Nothing requested goes untested, and nothing unrequested
+gets built.
+
+TraceSpec gets there with three things that spec tools usually leave out:
+
+- **Independent agents.** Tests and code are written by separate agents that cannot see each other's work (a hook enforces it), so
+  they can only agree through the written criteria.
+- **A deterministic checker.** Coverage is decided from files and a real test run, never by a model's say-so.
+- **A queryable trace** from ticket down to the function, which flags drift when code, tests or specs change outside the process.
 
 ```mermaid
 flowchart TB
