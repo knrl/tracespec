@@ -11,14 +11,24 @@ Every requirement gets acceptance criteria written first. Every test comes from 
 failing test. A tool, not a model, proves that chain, records it from ticket down to the function, and flags it when code, tests or
 specs drift away from it later.
 
+```mermaid
+flowchart LR
+    E["<b>explore</b><br/>talk it through"] --> P["<b>propose</b><br/>questions, proposal,<br/>deltas, design, tasks"]
+    P --> A{{"<b>you approve</b><br/>once"}}
+    A --> AP["<b>apply</b><br/>agent A: tests that fail<br/>agent B: code that passes"]
+    AP --> V["<b>verify</b><br/>independent review,<br/>developer overview"]
+    V --> AR["<b>archive</b><br/>deltas merge into the living<br/>specs, locked and audited"]
+    AR -. "drift found later" .-> P
+
+    classDef human fill:#fde68a,stroke:#b45309,color:#1f2937
+    classDef agent fill:#bfdbfe,stroke:#1d4ed8,color:#1f2937
+    classDef tool fill:#bbf7d0,stroke:#15803d,color:#1f2937
+    class A human
+    class AP,P agent
+    class V,AR tool
 ```
-explore ─► propose ─► you approve ─► apply ─► verify ─► archive
- (talk)    questions    once         tests ✗    review    deltas merge into
-           proposal                  (agent A)             the living specs,
-           deltas                    code ✓                locked and audited
-           design                    (agent B)
-           tasks
-```
+
+<sub>Yellow is your decision, blue is agent work, green is checked by the tool.</sub>
 
 > **Status: 0.1.0, early.** It works end to end and is tested on Windows and Linux, but the format TraceSpec writes into your project
 > may still change before 1.0; the [changelog](CHANGELOG.md) says when it does.
@@ -34,6 +44,40 @@ explore ─► propose ─► you approve ─► apply ─► verify ─► arch
   with a reason.
 - **It stays true.** After a change ships, edits made outside the process show up as findings that name the rules and tests to revisit.
 - **You can ask it things.** "Why does this line exist?", "What was built for ticket X?", "Which tests protect this function?"
+
+## How the pieces fit
+
+The two build agents only meet through the written criteria, and the checker, not a model, decides what counts as covered.
+
+```mermaid
+flowchart TB
+    SPEC[("Criteria<br/>AC-1, AC-2 ...")]
+    SPEC -->|"reads criteria only"| TW["Agent A<br/>test writer"]
+    SPEC -->|"reads criteria only"| CO["Agent B<br/>coder"]
+    TW -->|"writes"| TESTS["tests<br/>test_AC1_..."]
+    CO -->|"writes"| CODE["source code"]
+    TESTS -. "hook blocks reading code" .- CO
+    CODE -. "hook blocks reading tests" .- TW
+    TESTS --> RUN["real test run<br/>(JUnit result)"]
+    CODE --> RUN
+    RUN --> CHK{"checker<br/>every criterion has a<br/>passing test that names it?"}
+    CHK -->|yes| OK["covered"]
+    CHK -->|no| FIND["finding with a code<br/>(TEST001, TEST007 ...)"]
+```
+
+## What it records
+
+Each link in this chain is stored in a small binary trace and can be queried from either end.
+
+```mermaid
+flowchart BT
+    SYM["code symbol<br/>shop/cart.py::total"] -- "built by" --> TASK["task T-1"]
+    TASK -- "serves" --> AC["criterion AC-1"]
+    TEST["test<br/>test_AC1_..."] -- "verifies" --> AC
+    AC -- "covers" --> FR["rule FR-1"]
+    FR -- "source" --> Q["question Q-1"]
+    FR -- "ref" --> REF["ticket SHOP-31<br/>(optional)"]
+```
 
 ## How it compares
 
@@ -109,6 +153,20 @@ rule FR-1 [checkout]  The total of a cart is the sum of its item prices as a flo
 
 That is real output from [`examples/shop`](examples/shop). Targets can be a rule or criterion ID, a test, a task, a file,
 `file::symbol`, `file:line`, a ticket, or a capability; see [Commands](docs/commands.md#--trace).
+
+## Staying true after it ships
+
+The live layer hashes your files and symbols on every command. An edit made outside the process turns into a finding that names what to revisit.
+
+```mermaid
+flowchart LR
+    ED["someone edits<br/>shop/cart.py::total"] --> SYNC["sync: hash differs<br/>from the baseline"]
+    SYNC --> STALE["last test result<br/>marked stale"]
+    SYNC --> DRIFT["audit: DRIFT finding<br/>names AC-1, FR-1,<br/>test_AC1_..."]
+    DRIFT --> CHOICE{"your call"}
+    CHOICE -->|"the change was right"| UPD["update the spec and<br/>tests, then --reconfirm"]
+    CHOICE -->|"the change was wrong"| REV["revert the edit"]
+```
 
 ## What lands in your repository
 
