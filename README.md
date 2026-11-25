@@ -12,23 +12,62 @@ agent writes the code, and a checker, not a model, proves every requirement is c
 the process are flagged as drift.
 
 ```mermaid
-flowchart LR
-    E["<b>explore</b><br/>talk it through"] --> P["<b>propose</b><br/>questions, proposal,<br/>deltas, design, tasks"]
-    P --> A{{"<b>you approve</b><br/>once"}}
-    A --> AP["<b>apply</b><br/>agent A: tests that fail<br/>agent B: code that passes"]
-    AP --> V["<b>verify</b><br/>independent review,<br/>developer overview"]
-    V --> AR["<b>archive</b><br/>deltas merge into the living<br/>specs, locked and audited"]
-    AR -. "drift found later" .-> P
+flowchart TB
+    REQ(["your request<br/>(optional ticket ref)"])
+
+    subgraph SPEC["1 - Clarify and specify"]
+        direction LR
+        Q["agent asks questions"] --> DOC["proposal, delta specs<br/>rules FR-n, criteria AC-n,<br/>design, tasks"]
+    end
+    G12{{"CHECKER gates 1-2<br/>every rule has a criterion,<br/>no TBD, IDs unique"}}
+    YOU{{"YOU approve once"}}
+
+    subgraph TESTS["2 - Acceptance tests first"]
+        direction LR
+        TW["agent A writes tests<br/>named after AC-n<br/>(never sees the code)"] --> RED["tests must FAIL first<br/>a modified criterion that<br/>already passes is rejected"]
+    end
+    G3{{"CHECKER gate 3<br/>every criterion has a test,<br/>every test has a criterion"}}
+
+    subgraph BUILD["3 - Build, task by task"]
+        direction LR
+        CO["agent B writes code<br/>(never sees the tests)"] --> GREEN["real test run<br/>must pass"]
+    end
+    G4{{"CHECKER gate 4<br/>task ticked only when its<br/>criteria pass; symbols recorded"}}
+
+    subgraph CLOSE["4 - Verify and archive"]
+        direction LR
+        REV["independent review<br/>+ one developer overview"] --> ARCH["deltas merge into<br/>the living specs"]
+    end
+    G5{{"CHECKER gate 5<br/>full suite green,<br/>chain unbroken"}}
+
+    subgraph STORE["Evidence kept in the repo"]
+        direction LR
+        LS[("living specs")] ~~~ DB[("trace.db<br/>ticket - rule - criterion<br/>- test - task - symbol")] ~~~ LED[("hash-chained<br/>ledger")]
+    end
+
+    subgraph WATCH["5 - Watching afterwards"]
+        direction LR
+        EDIT["code, test or spec<br/>edited outside the process"] --> SYNC["sync hashes symbols,<br/>marks results stale"] --> AUD["audit: DRIFT finding<br/>names the rules and tests<br/>to revisit"]
+    end
+
+    REQ --> SPEC --> G12 --> YOU --> TESTS --> G3 --> BUILD --> G4 --> CLOSE --> G5
+    G5 --> STORE
+    STORE --> WATCH
+    AUD -. "update the spec, or revert" .-> SPEC
+    ASK(["/tracespec trace<br/>why does this exist?"]) -.-> DB
 
     classDef human fill:#fde68a,stroke:#b45309,color:#1f2937
     classDef agent fill:#bfdbfe,stroke:#1d4ed8,color:#1f2937
     classDef tool fill:#bbf7d0,stroke:#15803d,color:#1f2937
-    class A human
-    class AP,P agent
-    class V,AR tool
+    classDef store fill:#e9d5ff,stroke:#7e22ce,color:#1f2937
+    class REQ,YOU,ASK human
+    class Q,DOC,TW,CO,REV agent
+    class G12,G3,G4,G5,RED,GREEN,SYNC,AUD,ARCH tool
+    class LS,DB,LED store
 ```
 
-<sub>Yellow is your decision, blue is agent work, green is checked by the tool.</sub>
+<sub>Yellow is you, blue is agent work, green is decided by the deterministic checker from files and real test runs, purple is
+what stays in your repository.</sub>
 
 > **Status: 0.1.0, early.** It works end to end and is tested on Windows and Linux, but the format TraceSpec writes into your project
 > may still change before 1.0; the [changelog](CHANGELOG.md) says when it does.
