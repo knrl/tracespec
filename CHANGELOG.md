@@ -6,6 +6,8 @@ format of what TraceSpec writes into a project; the notes say so when they do.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-25
+
 ### Changed
 
 - **The developer overview is much shorter.** `docs/features/<change>.md` now has three sections, Purpose, Design (how it fits, the
@@ -103,5 +105,6 @@ are covered by CI only.
 - A weak test with the right name passes the checker; the independent review is the only guard.
 - Tamper-evident, not tamper-proof.
 
-[Unreleased]: https://github.com/knrl/tracespec/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/knrl/tracespec/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/knrl/tracespec/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/knrl/tracespec/releases/tag/v0.1.0
