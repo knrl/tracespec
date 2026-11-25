@@ -17,6 +17,14 @@ TraceSpec gets there with three things that spec tools usually leave out:
 - **A deterministic checker.** Coverage is decided from files and a real test run, never by a model's say-so.
 - **A queryable trace** from ticket down to the function, which flags drift when code, tests or specs change outside the process.
 
+**Our philosophy**
+
+- → proof, not promises
+- → one decision from you, not an approval at every step
+- → the tool decides, the model proposes
+- → built for brownfield: changes to existing projects, not only new ones
+- → any language, standard library only, nothing to run in the background
+
 ```mermaid
 flowchart TB
     REQ(["your request<br/>(optional ticket ref)"])
@@ -77,6 +85,65 @@ what stays in your repository.</sub>
 
 > **Status: 0.1.0, early.** It works end to end and is tested on Windows and Linux, but the format TraceSpec writes into your project
 > may still change before 1.0; the [changelog](CHANGELOG.md) says when it does.
+
+## See it in action
+
+*An illustrative session; every file and check named here is real, see [Examples](docs/examples.md) for actual output.*
+
+```
+You: /tracespec explore
+AI:  What would you like to explore?
+You: A discount at checkout. I'm not sure where it belongs.
+AI:  Totals are computed in shop/cart.py and nothing else touches them,
+     so the discount fits there. Want to scope it?
+You: Yes.
+
+You: /tracespec propose add-discount
+AI:  Two questions. From what order total does the discount apply?
+You: Over 10000 cents, 10% off.
+AI:  Created .tracespec/changes/add-discount/
+     OK proposal.md       why, goals, assumptions, decisions
+     OK specs/checkout    1 rule added, 1 modified, 1 removed, with criteria
+     OK design.md         technical approach
+     OK tasks.md          checklist, each task tied to a criterion
+     Gates 1-2: passed. Summary for you to approve: ...
+You: Approved.
+
+You: /tracespec apply
+AI:  T-1  tests written by agent A: AC-1, AC-3 fail, as required
+     T-1  code written by agent B:  2 passed
+     Gate 4: every criterion has a passing test. Task T-1 done.
+
+You: /tracespec archive
+AI:  Gate 5 passed. Archived to .tracespec/changes/archive/2026-11-25-add-discount/
+     Living spec updated. Overview for you: docs/features/add-discount.md
+```
+
+### What do the specs look like?
+
+Plain Markdown tables, no special syntax. A change is written as a delta against the living spec: it lists only what it adds,
+modifies and removes. This is the real delta from [`examples/shop`](examples/shop):
+
+```markdown
+## ADDED
+
+| ID   | Rule                                            | Source |
+|------|-------------------------------------------------|--------|
+| FR-3 | An order whose total is over 10000 gets 10% off | Q-1    |
+
+| ID   | Covers | Given / When / Then                                                                  |
+|------|--------|--------------------------------------------------------------------------------------|
+| AC-3 | FR-3   | Given one item priced 15000, when the cart is totalled, then the total is 13500.0    |
+
+## REMOVED
+
+| ID   | Reason                                   | Migration                   |
+|------|------------------------------------------|-----------------------------|
+| FR-2 | Gift cards moved to the payments service | Call payments.accept_gift   |
+```
+
+Your agent writes these, you review the summary before any code is written, and the criterion number `AC-3` ends up in the name of
+the test that proves it.
 
 ## Use it in three steps
 
