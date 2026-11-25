@@ -65,6 +65,32 @@ flowchart TB
 <sub>Yellow is you, blue is agent work, green is decided by the deterministic checker from files and real test runs, purple is
 what stays in your repository.</sub>
 
+## What do the specs look like?
+
+Plain Markdown tables, no special syntax. A change is written as a delta against the living spec: it lists only what it adds,
+modifies and removes. This is the real delta from [`examples/shop`](../examples/shop):
+
+```markdown
+## ADDED
+
+| ID   | Rule                                            | Source |
+|------|-------------------------------------------------|--------|
+| FR-3 | An order whose total is over 10000 gets 10% off | Q-1    |
+
+| ID   | Covers | Given / When / Then                                                                  |
+|------|--------|--------------------------------------------------------------------------------------|
+| AC-3 | FR-3   | Given one item priced 15000, when the cart is totalled, then the total is 13500.0    |
+
+## REMOVED
+
+| ID   | Reason                                   | Migration                   |
+|------|------------------------------------------|-----------------------------|
+| FR-2 | Gift cards moved to the payments service | Call payments.accept_gift   |
+```
+
+Your agent writes these, you review the summary before any code is written, and the criterion number `AC-3` ends up in the name of
+the test that proves it.
+
 ## How the pieces fit
 
 The two build agents only meet through the written criteria, and the checker, not a model, decides what counts as covered.

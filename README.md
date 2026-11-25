@@ -62,32 +62,6 @@ AI:  Gate 5 passed. Archived to .tracespec/changes/archive/2026-11-25-add-discou
      Living spec updated. Overview for you: docs/features/add-discount.md
 ```
 
-### What do the specs look like?
-
-Plain Markdown tables, no special syntax. A change is written as a delta against the living spec: it lists only what it adds,
-modifies and removes. This is the real delta from [`examples/shop`](examples/shop):
-
-```markdown
-## ADDED
-
-| ID   | Rule                                            | Source |
-|------|-------------------------------------------------|--------|
-| FR-3 | An order whose total is over 10000 gets 10% off | Q-1    |
-
-| ID   | Covers | Given / When / Then                                                                  |
-|------|--------|--------------------------------------------------------------------------------------|
-| AC-3 | FR-3   | Given one item priced 15000, when the cart is totalled, then the total is 13500.0    |
-
-## REMOVED
-
-| ID   | Reason                                   | Migration                   |
-|------|------------------------------------------|-----------------------------|
-| FR-2 | Gift cards moved to the payments service | Call payments.accept_gift   |
-```
-
-Your agent writes these, you review the summary before any code is written, and the criterion number `AC-3` ends up in the name of
-the test that proves it.
-
 ## Use it in three steps
 
 You need [Claude Code](https://claude.com/claude-code) and Python 3.10 or newer. Nothing else.
