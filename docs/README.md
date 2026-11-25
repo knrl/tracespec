@@ -16,6 +16,8 @@ If you read nothing else, read these two pages:
 |---|---|
 | Install it and try it on a real change | [Getting started](getting-started.md) |
 | Understand living specs, deltas, the trace and the audit | [Concepts](concepts.md) |
+| See the diagrams: agents, the trace, drift, what lands in the repo | [How it works](how-it-works.md) |
+| Compare it with other tools, or see its limits | [Comparison and limits](comparison-and-limits.md) |
 | See real output from a finished project | [Examples](examples.md), and the project in [`examples/shop`](../examples/shop) |
 | Look up a command, a flag or a finding code | [Commands](commands.md) |
 | Fit it to my language, test runner or team rules | [Customization](customization.md) |
