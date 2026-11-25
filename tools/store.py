@@ -31,7 +31,7 @@ CREATE INDEX edge_dst ON edge(dst);
 """
 
 CACHE_SCHEMA = """
-CREATE TABLE IF NOT EXISTS filecache(path TEXT PRIMARY KEY, mtime_ns INTEGER, size INTEGER, hash TEXT);
+CREATE TABLE IF NOT EXISTS filecache(path TEXT PRIMARY KEY, mtime_ns INTEGER, size INTEGER, hash TEXT, seen_ns INTEGER);
 CREATE TABLE IF NOT EXISTS symcache(path TEXT PRIMARY KEY, filehash TEXT, resolver TEXT, symbols TEXT);
 CREATE TABLE IF NOT EXISTS acrun(ac TEXT PRIMARY KEY, status TEXT, tests TEXT, at TEXT);
 CREATE TABLE IF NOT EXISTS acbasis(ac TEXT, node TEXT, hash TEXT, PRIMARY KEY(ac, node));
@@ -113,6 +113,10 @@ def cache(project: Path):
     conn = sqlite3.connect(path)
     try:
         conn.executescript(CACHE_SCHEMA)
+        try:                                   # a cache made before seen_ns existed
+            conn.execute("ALTER TABLE filecache ADD COLUMN seen_ns INTEGER")
+        except sqlite3.OperationalError:
+            pass
         yield conn
         conn.commit()
     finally:

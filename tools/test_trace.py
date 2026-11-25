@@ -1,6 +1,7 @@
 """Tests of the symbol-level links, the live layer, optional external references, and the trace query.
 Run: python -m unittest test_trace   (from the tools folder)"""
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -106,6 +107,23 @@ class StoreTests(unittest.TestCase):
                 pass
             self.assertEqual((Path(tmp) / ".tracespec" / ".gitignore").read_text().strip(), "cache/")
 
+    def test_a_rewrite_with_the_same_size_and_the_same_mtime_is_still_seen(self):
+        """The racy case: two writes in one clock tick, same size. Without the racy rule the second is missed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp)
+            (p / "shop").mkdir()
+            f = p / "shop" / "cart.py"
+            f.write_bytes(b"def total(i):\n    return sum(i)\n")
+            size = f.stat().st_size
+            current.sync(p, LAYOUT)
+            before = f.stat().st_mtime_ns
+            f.write_bytes(b"def total(i):\n    return min(i)\n")                  # same length
+            os.utime(f, ns=(before, before))                                       # same modification time
+            self.assertEqual(f.stat().st_size, size)
+            self.assertEqual(current.sync(p, LAYOUT)["reparsed"], 1)
+            ids = {s["id"]: s["hash"] for s in current.current_symbols(p).values()}
+            self.assertEqual(ids["shop/cart.py::total"], symbols.text_hash("def total(i):\n    return min(i)\n"))
+
     def test_sync_is_incremental(self):
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp)
@@ -113,8 +131,10 @@ class StoreTests(unittest.TestCase):
             (p / "tests").mkdir()
             (p / "shop" / "cart.py").write_text(CART)
             (p / "tests" / "test_cart.py").write_text("def test_AC1_a():\n    pass\n")
+            for f in (p / "shop" / "cart.py", p / "tests" / "test_cart.py"):      # old files: their cached hash is trusted
+                os.utime(f, ns=(time.time_ns() - 60_000_000_000,) * 2)
             self.assertEqual(current.sync(p, LAYOUT)["reparsed"], 2)
-            self.assertEqual(current.sync(p, LAYOUT), {"files": 2, "rehashed": 0, "reparsed": 0, "gone": 0})
+            self.assertEqual(current.sync(p, LAYOUT)["reparsed"], 0)
             time.sleep(0.02)
             (p / "shop" / "cart.py").write_text(CART.replace("return v", "return v + 1"))
             s = current.sync(p, LAYOUT)

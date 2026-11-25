@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import time
 from pathlib import Path
 
 import store
@@ -17,11 +18,16 @@ import symbols
 from common import classify, file_hash, walk_files
 
 
+# A file whose modification time is within this window of the moment it was cached may have been written again, with the same
+# size, in the same clock tick: the file system cannot tell. Git calls such an entry "racily clean" and re-reads it; so do we.
+RACY_NS = 2_000_000_000
+
+
 def sync(project: Path, layout: dict) -> dict:
     """Bring the cache up to date with the working tree. Returns counts."""
     stats = {"files": 0, "rehashed": 0, "reparsed": 0, "gone": 0}
     with store.cache(project) as c:
-        known = {p: (m, s, h) for p, m, s, h in c.execute("SELECT path, mtime_ns, size, hash FROM filecache")}
+        known = {p: (m, s, h, seen) for p, m, s, h, seen in c.execute("SELECT path, mtime_ns, size, hash, seen_ns FROM filecache")}
         parsed = {p: fh for p, fh in c.execute("SELECT path, filehash FROM symcache")}
         seen = set()
         for rel in walk_files(project):
@@ -33,13 +39,15 @@ def sync(project: Path, layout: dict) -> dict:
             except OSError:
                 continue
             row = known.get(rel)
-            if row and row[0] == st.st_mtime_ns and row[1] == st.st_size:
+            trusted = (row and row[0] == st.st_mtime_ns and row[1] == st.st_size and row[3] is not None
+                       and st.st_mtime_ns < row[3] - RACY_NS)
+            if trusted:
                 h = row[2]
             else:
                 h = file_hash(path)
                 if h is None:
                     continue
-                c.execute("INSERT OR REPLACE INTO filecache VALUES (?, ?, ?, ?)", (rel, st.st_mtime_ns, st.st_size, h))
+                c.execute("INSERT OR REPLACE INTO filecache VALUES (?, ?, ?, ?, ?)", (rel, st.st_mtime_ns, st.st_size, h, time.time_ns()))
                 stats["rehashed"] += 1
             seen.add(rel)
             stats["files"] += 1
