@@ -143,6 +143,7 @@ tests protect this function?"
 | [Concepts](docs/concepts.md) | Living specs, deltas, the trace, the audit |
 | [Commands](docs/commands.md) | Every verb, flag and finding code |
 | [Customization](docs/customization.md) | Layout, stack presets, symbols, external ticket references, hooks |
+| [Best practices](docs/best-practices.md) | Habits that pay off, and the limits to know |
 | [Team workflow](docs/team-workflow.md) | Branches, pull requests, CI, merge conflicts |
 | [Examples](docs/examples.md) | Real output from a finished project |
 | [Comparison and limits](docs/comparison-and-limits.md) | How it differs from OpenSpec, Spec Kit and others; what it cannot do |

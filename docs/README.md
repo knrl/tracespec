@@ -21,6 +21,7 @@ If you read nothing else, read these two pages:
 | See real output from a finished project | [Examples](examples.md), and the project in [`examples/shop`](../examples/shop) |
 | Look up a command, a flag or a finding code | [Commands](commands.md) |
 | Fit it to my language, test runner or team rules | [Customization](customization.md) |
+| Use it well: habits that pay off, and the limits to know | [Best practices](best-practices.md) |
 | Use it with a team, branches, pull requests and CI | [Team workflow](team-workflow.md) |
 | Fix something that went wrong | [Troubleshooting](troubleshooting.md) |
 | Check a term | [Glossary](glossary.md) |

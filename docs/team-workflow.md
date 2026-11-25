@@ -33,7 +33,7 @@ Run the audit in your pipeline so drift fails the build. This is a sketch; adjus
 - name: Install your dependencies and test tools   # whatever your testCmd needs
   run: pip install -r requirements.txt pytest
 - name: Get TraceSpec
-  run: git clone --depth 1 --branch v0.1.0 https://github.com/knrl/tracespec.git "$RUNNER_TEMP/tracespec"
+  run: git clone --depth 1 --branch v0.1.1 https://github.com/knrl/tracespec.git "$RUNNER_TEMP/tracespec"
 - name: Audit
   run: python "$RUNNER_TEMP/tracespec/tools/check.py" . --audit
 ```
