@@ -62,6 +62,7 @@ def main() -> int:
     for line in install(skills, agents):
         print(line)
     print("\nRestart Claude Code, then try: /tracespec explore <what you want to change>")
+    print(f"To check the setup in a project: python {(skills / 'tracespec' / 'tools' / 'check.py').as_posix()} <project> --doctor")
     return 0
 
 

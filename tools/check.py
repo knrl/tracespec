@@ -5,6 +5,11 @@ The coordinator runs it; the build agents do not.
 Everything agent-oriented lives in .tracespec/ (a change is .tracespec/changes/<name>/; living specs are
 .tracespec/specs/<capability>/). The one file for people is docs/features/<change>.md.
 
+Set up and health:
+    check.py <folder> --init                   create .tracespec.json from what the folder looks like (stack, tests, test command)
+    check.py [<project>] --doctor [--no-run]   is this machine and project ready? Python, git, agents and their guard hook,
+                                               the test command (run once unless --no-run)
+
 Checks:
     check.py <project>                         structural checks of the active change
     check.py <project> --gate <n>              n = 1 questions, 2 proposal, 3 tests written, 4 build, 5 close
@@ -160,8 +165,8 @@ class UsageError(Exception):
     pass
 
 
-KNOWN_FLAGS = frozenset("""--amend --approve --archive --audit --baseline --by --change --ci --depth --detect --diff --down
---export --fingerprint --gate --help --impact --install-hooks --ir-open --json --limit --list --living --matrix --mermaid
+KNOWN_FLAGS = frozenset("""--amend --approve --archive --audit --baseline --by --change --ci --depth --detect --diff --doctor --down
+--export --fingerprint --gate --help --impact --init --install-hooks --ir-open --json --limit --list --living --matrix --mermaid
 --next-id --no-run --note --overview --quiet --reconfirm --run --show --story --sync --task-done --task-start --trace --up
 --version --view --words""".split())
 
@@ -930,6 +935,32 @@ def cmd_view(project, layout) -> int:
     return 0
 
 
+def cmd_init(folder: Path) -> int:
+    """Create .tracespec.json from detect(): the layout a developer would otherwise have to write by hand."""
+    if not folder.is_dir():
+        print(f"{folder}: not a folder")
+        return 2
+    existing = find_project(folder)
+    if existing is not None:
+        print(f"{existing / STATE} already exists" + ("" if existing == folder else f" (this folder is inside that project)")
+              + ": nothing changed. `check.py <project> --doctor` checks it")
+        return 2
+    found = detect(folder)
+    layout = {k: found[k] for k in ("tests", "code", "testCmd", "testEnv", "junit")}
+    state = {"process": "tracespec", "processVersion": "2.0", "activeChange": None, "changes": {}, "layout": layout}
+    write_atomic(folder / STATE, json.dumps(state, indent=2))
+    print(f"created {STATE} for a {found['stack']} project")
+    print(f"  tests:    {', '.join(layout['tests']) or '(none found)'}")
+    print(f"  code:     {', '.join(layout['code']) or '(none found)'}")
+    print(f"  test cmd: {' '.join(layout['testCmd']) or '(none found)'}")
+    if found["stack"] == "unknown":
+        print("The stack was not recognised: edit layout in .tracespec.json (tests, code, testCmd, junit; see docs/customization.md).")
+    elif "needs" in found["stack"]:
+        print(f"Note: {found['stack']}.")
+    print("Next: `check.py <folder> --doctor` to check the setup, then /tracespec propose <your request> in Claude Code.")
+    return 0
+
+
 def cmd_next_id(project, args) -> int:
     prefix = opt(args, "--next-id")
     if prefix not in ("FR", "NFR", "AC", "NG"):
@@ -1072,7 +1103,7 @@ def main(argv: list[str]) -> int:
     if unknown:
         print(f"unknown option {unknown[0]} (check.py --help lists them)")
         return 2
-    if argv[0].startswith("--") and argv[0] not in ("--fingerprint", "--detect"):
+    if argv[0].startswith("--") and argv[0] not in ("--fingerprint", "--detect", "--doctor"):
         print(f"the project folder comes first: check.py <project> {argv[0]} ...")
         return 2
     try:
@@ -1094,9 +1125,18 @@ def run(argv: list[str]) -> int:
         print(json.dumps(detect(Path(argv[1]).resolve()), indent=2))
         return 0
 
+    if "--init" in argv:
+        return cmd_init(Path(argv[0]).resolve())
+    if "--doctor" in argv:
+        import doctor
+        start = Path.cwd() if argv[0] == "--doctor" else Path(argv[0])
+        code, text = doctor.report(doctor.doctor(find_project(start), run="--no-run" not in argv))
+        print(text)
+        return code
+
     project = find_project(argv[0])
     if project is None:
-        print(f"{argv[0]}: no {STATE} in this folder or above it")
+        print(f"{argv[0]}: no {STATE} in this folder or above it (check.py <folder> --init sets one up)")
         return 2
     args = argv[1:]
     layout, problems = layout_of(project)

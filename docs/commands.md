@@ -24,6 +24,13 @@ you; run it yourself when you want a quick answer. `<project>` is the project ro
 python check.py <project> [options]
 ```
 
+### Setup and health
+
+| Command | Purpose |
+|---|---|
+| `<folder> --init` | Create `.tracespec.json` from what the folder looks like: stack, test and code paths, test command. Never overwrites, and refuses inside an existing project. |
+| `[<project>] --doctor [--no-run]` | Is this machine and project ready? Checks Python 3.10+, git (optional), the two agents and their guard hook (it asks the real hook to read a hidden file and expects a refusal), that the test command exists and, unless `--no-run`, that it runs once and writes a JUnit report. Prints `ok`, `warn` or `FAIL` per check with the fix; exit 1 when anything fails. |
+
 ### Checks
 
 | Command | Purpose |

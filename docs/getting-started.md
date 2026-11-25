@@ -22,6 +22,18 @@ This copies the skill to `~/.claude/skills/tracespec` and writes the two agents 
 `~/.claude/agents/` with the right hook path. **Restart Claude Code**: skills and agents are read when a session starts. To update,
 pull and run `python install.py` again.
 
+## Check your setup
+
+In the project you want to change, one command each (the tool lives in the installed skill folder):
+
+```bash
+python ~/.claude/skills/tracespec/tools/check.py . --init      # writes .tracespec.json from what it finds (optional; propose does it too)
+python ~/.claude/skills/tracespec/tools/check.py . --doctor    # Python, git, agents and their guard hook, your test command
+```
+
+`--doctor` prints `ok`, `warn` or `FAIL` for each check, with the fix next to every failure. Run it again after installing or
+upgrading, or whenever something behaves oddly. See [Commands](commands.md#setup-and-health).
+
 ## Your first change
 
 Open Claude Code in the project you want to change, then type:

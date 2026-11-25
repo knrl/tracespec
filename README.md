@@ -74,7 +74,11 @@ cd tracespec
 python install.py
 ```
 
-Then **restart Claude Code**: skills and agents are read when a session starts.
+Then **restart Claude Code**: skills and agents are read when a session starts. To check the setup from your project folder:
+
+```bash
+python ~/.claude/skills/tracespec/tools/check.py . --doctor
+```
 
 **2. Ask for a change** in the project you want to change
 

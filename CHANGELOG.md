@@ -6,6 +6,14 @@ format of what TraceSpec writes into a project; the notes say so when they do.
 
 ## [Unreleased]
 
+### Added
+
+- **`check.py <folder> --init`** writes `.tracespec.json` from what the folder looks like, so a developer can set up a project
+  without the agent. It never overwrites.
+- **`check.py [<project>] --doctor [--no-run]`** checks that the machine and project are ready: Python version, git, both agents and
+  their guard hook (it asks the real hook to read a hidden file and expects a refusal), the test command, and one real test run.
+  Every failure comes with its fix; the exit code is 1 when anything fails.
+
 ### Fixed
 
 - A corrupt or truncated `.tracespec.json` is now an error (exit 2) that leaves the file alone. It used to read as "no changes", and
