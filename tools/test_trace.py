@@ -327,11 +327,32 @@ class TraceTests(unittest.TestCase):
             self.assertIn({"from": "AC-1", "to": "FR-1", "kind": "covers"}, data["edges"])
             self.assertTrue(any(n["id"] == "AC-1" and "PASS" in n["state"] for n in data["nodes"]))
             rc, out = env.run("--trace", "AC-1", "--mermaid")
-            self.assertTrue(out.startswith("flowchart TD"))
+            self.assertTrue(out.startswith("flowchart LR"))
+            for layer in ("Rules", "Criteria", "Tests", "Code"):
+                self.assertIn(f'["{layer}"]', out)                       # one column per layer
+            self.assertIn("-->|covers|", out)
+            self.assertIn("class ", out)                                  # nodes are coloured by state
+            self.assertNotIn("-->|serves|", "".join(l for l in out.splitlines() if "FR-1" in l))
             rc, out = env.run("--trace", "does-not-exist")
             self.assertEqual(rc, 1)
             self.assertIn("nothing found", out)
             self.assertEqual(env.run("--trace")[0], 2)
+
+    def test_mermaid_colours_follow_the_state_of_the_code_and_tests(self):
+        def classes(out):
+            return {line.split()[-1]: line.split()[1] for line in out.splitlines() if line.startswith("  class ")}
+        with tempfile.TemporaryDirectory() as tmp:
+            env = archived(tmp)
+            rc, out = env.run("--trace", "AC-1", "--mermaid", "--depth", "6")
+            self.assertIn("good", classes(out))                           # code and test match the baseline
+            self.assertNotIn("warn", classes(out))
+            self.assertNotIn("bad", classes(out))
+            (env.root / "shop" / "cart.py").write_text(CART.replace("return sum(items)", "return sum(items) - 1"))
+            rc, out = env.run("--trace", "AC-1", "--mermaid", "--depth", "6")
+            self.assertIn("warn", classes(out))                           # the linked function changed since the archive
+            (env.root / "tests" / "test_cart.py").unlink()
+            rc, out = env.run("--trace", "AC-1", "--mermaid", "--depth", "6")
+            self.assertIn("bad", classes(out))                            # its test is gone
 
     def test_limit_truncates_with_a_hint(self):
         with tempfile.TemporaryDirectory() as tmp:

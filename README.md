@@ -125,7 +125,53 @@ rule FR-1 [checkout]  The total of a cart is the sum of its item prices as a flo
     verifies  test tests/test_cart.py::test_AC1_total_is_a_float_before_any_discount   <ok>
 ```
 
-That is real output from [`examples/shop`](examples/shop), shortened. You can ask about a rule or criterion ID, a test, a task, a file,
+That is real output from [`examples/shop`](examples/shop), shortened.
+The same trace as a picture (`--mermaid`): requests on the left, code on the right, green where the check passes. More in
+[How it works](docs/how-it-works.md#traceability-at-a-glance).
+
+```mermaid
+flowchart LR
+  subgraph L_Request["Request"]
+    n4["ref SHOP-31"]
+    n5["goal add-discount/Change<br/>the change add-discount"]
+  end
+  subgraph L_Rules["Rules"]
+    n2["FR-1<br/>The total of a cart is the sum of its item pri..."]
+    n3["FR-3<br/>An order whose total is over 10000 gets 10% of..."]
+  end
+  subgraph L_Criteria["Criteria"]
+    n0["AC-1<br/>Given item prices 100 and 250, when the cart i..."]
+    n1["AC-3<br/>Given one item priced 15000, when the cart is ..."]
+  end
+  subgraph L_Tests["Tests"]
+    n9["test_cart.py::test_AC1_total_is_a_float_before_any_discount"]
+    n10["test_cart.py::test_AC3_orders_over_the_threshold_get_ten_percent_off"]
+  end
+  subgraph L_Tasks["Tasks"]
+    n6["task T-1<br/>The float total and the discount"]
+  end
+  subgraph L_Code["Code"]
+    n7["cart.py (module level)"]
+    n8["cart.py::total"]
+  end
+  n2 -->|covers| n0
+  n3 -->|covers| n1
+  n5 -->|from| n2
+  n5 -->|from| n3
+  n4 -->|ref| n5
+  n0 -->|serves| n6
+  n1 -->|serves| n6
+  n6 -->|built by| n7
+  n6 -->|built by| n8
+  n0 -->|verifies| n9
+  n1 -->|verifies| n10
+  classDef good fill:#bbf7d0,stroke:#15803d,color:#1f2937
+  classDef warn fill:#fde68a,stroke:#b45309,color:#1f2937
+  classDef bad fill:#fecaca,stroke:#b91c1c,color:#1f2937
+  classDef idle fill:#e5e7eb,stroke:#6b7280,color:#1f2937
+  class n0,n1,n7,n8,n9,n10 good
+```
+ You can ask about a rule or criterion ID, a test, a task, a file,
 `file::symbol`, `file:line`, a ticket, or a whole capability. "Why does this line exist?", "What was built for ticket X?", "Which
 tests protect this function?"
 

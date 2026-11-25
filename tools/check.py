@@ -1017,7 +1017,7 @@ def cmd_trace(project, layout, args) -> int:
     if "--json" in args:
         print(json.dumps(graph.to_json(g, now, shown, ids[:12]), indent=2))
     elif "--mermaid" in args:
-        print(graph.to_mermaid(g, shown))
+        print(graph.to_mermaid(g, now, shown))
     else:
         print("\n".join(lines))
         if len(ids) > 12:

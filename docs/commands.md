@@ -83,7 +83,7 @@ A target is a rule or criterion ID (`FR-12`, `AC-31`), a test name or part of it
 | `--down` | Toward the code and tests: what was built for it |
 | `--story` | The whole of the rule the target belongs to (the default for a test, task, symbol or file) |
 | `--depth N`, `--limit N` | How far to walk (default 8) and how many lines to print (default 120) |
-| `--json`, `--mermaid` | Machine-readable output, or a diagram to paste into a document |
+| `--json`, `--mermaid` | Machine-readable output, or a layered, colour-coded diagram (request, rules, criteria, tests, tasks, code; green, amber and red by state) to paste into a document. See [How it works](how-it-works.md#traceability-at-a-glance). |
 
 Each node shows its state in angle brackets: code and tests are `ok`, `CHANGED since the last archive` or `MISSING` (with "same text now
 at ..." when it moved); a criterion shows its last run and whether it is `fresh` or `stale`; a change not yet archived is marked

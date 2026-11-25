@@ -111,6 +111,111 @@ flowchart TB
     CHK -->|no| FIND["finding with a code<br/>(TEST001, TEST007 ...)"]
 ```
 
+## Traceability at a glance
+
+Every ticket, rule, criterion, test and function is a node, and every link is recorded. `check.py --trace <anything> --mermaid`
+draws the neighbourhood of whatever you ask about, in layers from the request to the code. The two diagrams below are that real output
+for ticket `SHOP-31` in [`examples/shop`](../examples/shop).
+
+**Healthy: every layer is linked, and the last test run passed.** Green means the check passes or the code and test still match the
+baseline.
+
+```mermaid
+flowchart LR
+  subgraph L_Request["Request"]
+    n4["ref SHOP-31"]
+    n5["goal add-discount/Change<br/>the change add-discount"]
+  end
+  subgraph L_Rules["Rules"]
+    n2["FR-1<br/>The total of a cart is the sum of its item pri..."]
+    n3["FR-3<br/>An order whose total is over 10000 gets 10% of..."]
+  end
+  subgraph L_Criteria["Criteria"]
+    n0["AC-1<br/>Given item prices 100 and 250, when the cart i..."]
+    n1["AC-3<br/>Given one item priced 15000, when the cart is ..."]
+  end
+  subgraph L_Tests["Tests"]
+    n9["test_cart.py::test_AC1_total_is_a_float_before_any_discount"]
+    n10["test_cart.py::test_AC3_orders_over_the_threshold_get_ten_percent_off"]
+  end
+  subgraph L_Tasks["Tasks"]
+    n6["task T-1<br/>The float total and the discount"]
+  end
+  subgraph L_Code["Code"]
+    n7["cart.py (module level)"]
+    n8["cart.py::total"]
+  end
+  n2 -->|covers| n0
+  n3 -->|covers| n1
+  n5 -->|from| n2
+  n5 -->|from| n3
+  n4 -->|ref| n5
+  n0 -->|serves| n6
+  n1 -->|serves| n6
+  n6 -->|built by| n7
+  n6 -->|built by| n8
+  n0 -->|verifies| n9
+  n1 -->|verifies| n10
+  classDef good fill:#bbf7d0,stroke:#15803d,color:#1f2937
+  classDef warn fill:#fde68a,stroke:#b45309,color:#1f2937
+  classDef bad fill:#fecaca,stroke:#b91c1c,color:#1f2937
+  classDef idle fill:#e5e7eb,stroke:#6b7280,color:#1f2937
+  class n0,n1,n7,n8,n9,n10 good
+```
+
+**After someone edits `total` and deletes the test file.** Nothing else changed, yet the picture shows exactly what is affected:
+amber is a function that changed since the last archive (and the criteria whose result is now stale), red is a test that no longer
+exists. A rule with no criterion, or a criterion with no test, is red too: that is a gap in coverage.
+
+```mermaid
+flowchart LR
+  subgraph L_Request["Request"]
+    n4["ref SHOP-31"]
+    n5["goal add-discount/Change<br/>the change add-discount"]
+  end
+  subgraph L_Rules["Rules"]
+    n2["FR-1<br/>The total of a cart is the sum of its item pri..."]
+    n3["FR-3<br/>An order whose total is over 10000 gets 10% of..."]
+  end
+  subgraph L_Criteria["Criteria"]
+    n0["AC-1<br/>Given item prices 100 and 250, when the cart i..."]
+    n1["AC-3<br/>Given one item priced 15000, when the cart is ..."]
+  end
+  subgraph L_Tests["Tests"]
+    n9["test_cart.py::test_AC1_total_is_a_float_before_any_discount"]
+    n10["test_cart.py::test_AC3_orders_over_the_threshold_get_ten_percent_off"]
+  end
+  subgraph L_Tasks["Tasks"]
+    n6["task T-1<br/>The float total and the discount"]
+  end
+  subgraph L_Code["Code"]
+    n7["cart.py (module level)"]
+    n8["cart.py::total"]
+  end
+  n2 -->|covers| n0
+  n3 -->|covers| n1
+  n5 -->|from| n2
+  n5 -->|from| n3
+  n4 -->|ref| n5
+  n0 -->|serves| n6
+  n1 -->|serves| n6
+  n6 -->|built by| n7
+  n6 -->|built by| n8
+  n0 -->|verifies| n9
+  n1 -->|verifies| n10
+  classDef good fill:#bbf7d0,stroke:#15803d,color:#1f2937
+  classDef warn fill:#fde68a,stroke:#b45309,color:#1f2937
+  classDef bad fill:#fecaca,stroke:#b91c1c,color:#1f2937
+  classDef idle fill:#e5e7eb,stroke:#6b7280,color:#1f2937
+  class n7 good
+  class n0,n1,n8 warn
+  class n9,n10 bad
+```
+
+How to read it: follow an arrow from left to right to see what implements and proves a request; follow it right to left to see why a
+line of code exists. The same graph answers questions in text: `--trace shop/cart.py:6` (why does this line exist), `--trace AC-3`
+(what proves it), `--trace SHOP-31` (what was built for the ticket).
+
 ## What it records
 
 Each link in this chain is stored in a small binary trace and can be queried from either end with `/tracespec trace`.

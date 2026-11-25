@@ -238,16 +238,63 @@ def to_json(g: Graph, now: Now, shown: set[str], targets: list[str]) -> dict:
             "edges": [{"from": s, "to": d, "kind": k} for s, d, k in sorted(g._edges) if s in shown and d in shown]}
 
 
-def to_mermaid(g: Graph, shown: set[str]) -> str:
+MERMAID_LAYERS = [("Request", ("ref", "goal", "question", "assumption", "open")), ("Rules", ("rule", "nongoal")),
+                  ("Criteria", ("criterion",)), ("Tests", ("test",)), ("Tasks", ("task", "design")), ("Code", ("symbol", "file"))]
+
+
+def _mermaid_class(g: Graph, now: Now, i: str) -> str:
+    """good / warn / bad / idle for the colour of a node. A rule with no criterion and a criterion with no test are gaps."""
+    kind = g.nodes[i]["kind"]
+    kids = {k for k, _c in g.children.get(i, [])}
+    if kind == "rule" and "covers" not in kids:
+        return "bad"
+    if kind == "criterion" and "verifies" not in kids:
+        return "bad"
+    s = now.state(g, i).lower()
+    if "missing" in s or "run: fail" in s or "run: no test" in s:
+        return "bad"
+    if "changed" in s or "stale" in s:
+        return "warn"
+    if s == "ok" or "run: pass" in s:
+        return "good"
+    return "idle" if "not run" in s else ""
+
+
+def _mermaid_label(g: Graph, i: str) -> str:
+    n = g.nodes[i]
+    clean = lambda s: re.sub(r"[\"<>]", "'", s)  # noqa: E731
+    if "::" in i:
+        path, name = i.split("::", 1)
+        head = f"{path.rsplit('/', 1)[-1]}::{name}" if name != "<module>" else f"{path.rsplit('/', 1)[-1]} (module level)"
+        return clean(head)
+    text = clean(n["text"]).strip()
+    text = (text[:46] + "...") if len(text) > 46 else text
+    short = i.split("/")[-1] if n["kind"] in ("task", "question", "assumption", "open", "design") else i
+    head = f"{LABEL[n['kind']]} {short}" if n["kind"] in ("ref", "goal", "question", "assumption", "open", "task", "design") else short
+    return clean(head) + (f"<br/>{text}" if text and n["kind"] != "ref" else "")
+
+
+def to_mermaid(g: Graph, now: Now, shown: set[str]) -> str:
+    """A left-to-right diagram in layers (request, rules, criteria, tests, tasks, code). Green: its check passes or it is unchanged.
+    Amber: it changed or its result is stale. Red: a gap (no criterion, no test) or a failing, missing or removed thing."""
     ids = {i: f"n{n}" for n, i in enumerate(sorted(shown))}
-    out = ["flowchart TD"]
-    for i, nid in ids.items():
-        text = g.nodes[i]["text"].replace('"', "'")[:40]
-        short = i.split("::")[-1] if "::" in i else i
-        out.append(f'  {nid}["{LABEL[g.nodes[i]["kind"]]} {short}<br/>{text}"]')
+    out = ["flowchart LR"]
+    for title, kinds in MERMAID_LAYERS:
+        members = [i for i in sorted(shown) if i in g.nodes and g.nodes[i]["kind"] in kinds]
+        if not members:
+            continue
+        out.append(f'  subgraph L_{title}["{title}"]')
+        out += [f'    {ids[i]}["{_mermaid_label(g, i)}"]' for i in members]
+        out.append("  end")
     for s, d, k in sorted(g._edges):
-        if s in ids and d in ids:
+        if s in ids and d in ids and not (k == "serves" and g.nodes[d]["kind"] == "rule"):    # rule -> task repeats criterion -> task
             out.append(f"  {ids[d]} -->|{EDGE_LABEL.get(k, k)}| {ids[s]}")
+    out += ["  classDef good fill:#bbf7d0,stroke:#15803d,color:#1f2937", "  classDef warn fill:#fde68a,stroke:#b45309,color:#1f2937",
+            "  classDef bad fill:#fecaca,stroke:#b91c1c,color:#1f2937", "  classDef idle fill:#e5e7eb,stroke:#6b7280,color:#1f2937"]
+    for cls in ("good", "warn", "bad", "idle"):
+        members = [ids[i] for i in sorted(shown) if i in g.nodes and _mermaid_class(g, now, i) == cls]
+        if members:
+            out.append(f"  class {','.join(members)} {cls}")
     return "\n".join(out)
 
 

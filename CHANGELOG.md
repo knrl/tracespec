@@ -6,6 +6,13 @@ format of what TraceSpec writes into a project; the notes say so when they do.
 
 ## [Unreleased]
 
+### Changed
+
+- **`--trace ... --mermaid` draws layers.** The diagram now runs left to right in columns (request, rules, criteria, tests, tasks,
+  code) and is coloured by state: green when a check passes or code and tests match the baseline, amber when something changed or a
+  result is stale, red for a gap (a rule with no criterion, a criterion with no test) or a missing, removed or failing item.
+  Two real examples are in the README and in `docs/how-it-works.md`.
+
 ## [0.1.1] - 2026-11-25
 
 ### Changed
