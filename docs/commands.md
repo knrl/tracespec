@@ -30,6 +30,7 @@ python check.py <project> [options]
 |---|---|
 | *(no option)* | Structural checks of the active change |
 | `--gate N` | Checks for a phase: 1 questions, 2 proposal, 3 tests written, 4 build, 5 close. Gates 3, 4 and 5 run the tests. |
+| `--run` | Run the tests as part of a check that would not run them on its own |
 | `--change NAME` | A change other than the active one |
 | `--matrix` | Run the tests and print the change's traceability matrix |
 | `--audit [--no-run] [--ci]` | Compare the working tree with the baseline. `--no-run` does the hash checks only. Exit 1 on any error. |
@@ -59,7 +60,10 @@ The tool does the bookkeeping; the build agents cannot write these.
 | `--next-id FR\|NFR\|AC\|NG` | The next free ID |
 | `--export FILE [--living]` | Write a matrix as Markdown, on request |
 | `--sync [--quiet]` | Refresh the live layer (it runs at the start of every command anyway) |
-| `--fingerprint FILE`, `--fingerprint code`, `--detect`, `--version` | Helpers |
+| `--fingerprint FILE`, `--fingerprint code`, `--detect`, `--version`, `--help` | Helpers (`--help` and `--version` work anywhere) |
+
+The project folder always comes first. An unknown option, a missing value or a number out of range stops the command with exit 2
+and a message; it never runs a different check by accident.
 
 ### `--trace`
 
@@ -116,7 +120,7 @@ Warnings never fail a gate. Errors do.
 | TEST005 | A new test names no criterion |
 | TEST006, TEST007 | A new test already passes (warning); a modified criterion's tests still pass (error) |
 | TEST008 | No baseline of existing tests is recorded (warning) |
-| CHG001 | A changed file lies outside "Affected areas" |
+| CHG001, CHG002 | A changed file lies outside "Affected areas"; the scope check was skipped because there is no git repository (a warning) |
 | LINK001 | A rule or criterion has no code recorded on its tasks (warning) |
 | REF001, REF002 | An external reference is missing or does not match `refPattern` (only when configured) |
 | OVERVIEW001 ... OVERVIEW007 | The developer overview is missing, lacks a section, is a placeholder, has no facts block, names a component that does not exist, is empty, or is too long (a warning) |

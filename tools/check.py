@@ -57,9 +57,9 @@ import living  # noqa: E402
 import overview  # noqa: E402
 import store  # noqa: E402
 import tracing  # noqa: E402
-from common import (ID_RE, STATE, active_change, archive_dir, change_dir, changes_dir, classify,  # noqa: E402
+from common import (ID_RE, STATE, StateError, active_change, archive_dir, change_dir, changes_dir, classify,  # noqa: E402
                     find_project, fingerprint_code, fingerprint_text, layout_of, load_state, matches, overview_path,
-                    specs_dir)
+                    specs_dir, write_atomic)
 
 REQUIRED_HEADINGS = ["goal", "existing code facts", "interfaces the tests call", "affected areas"]
 SOURCE_IDS = re.compile(r"\b(Q|ASM|OPEN|G)-\d+\b")
@@ -82,7 +82,7 @@ def read(path: Path) -> str | None:
 def run_tests(project: Path, layout: dict):
     """Run the suite and record the result per criterion with the hashes it depends on (so it can be marked stale)."""
     import results
-    cases, err = results.run_tests(project, layout)
+    cases, err = results.run_tests(project, layout, verbose=True)
     if not err:
         current.sync(project, layout)
         current.record_run(project, cases, ledger.basis_nodes(project))
@@ -131,11 +131,39 @@ def today() -> str:
 
 
 def save_state(project: Path, state: dict) -> None:
-    (project / STATE).write_text(json.dumps(state, indent=2), encoding="utf-8")
+    write_atomic(project / STATE, json.dumps(state, indent=2))
 
 
 def opt(args: list[str], name: str) -> str | None:
-    return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else None
+    """The value after a flag, or None when it is missing (a following flag is not a value)."""
+    if name not in args or args.index(name) + 1 >= len(args):
+        return None
+    value = args[args.index(name) + 1]
+    return None if value.startswith("--") else value
+
+
+def int_opt(args: list[str], name: str, default: int, low: int = 0, high: int = 10**6) -> int:
+    """An integer option; raises UsageError with a plain message when the value is missing or out of range."""
+    if name not in args:
+        return default
+    raw = opt(args, name)
+    try:
+        value = int(raw) if raw is not None else None
+    except ValueError:
+        value = None
+    if value is None or not low <= value <= high:
+        raise UsageError(f"{name} needs a whole number from {low} to {high}")
+    return value
+
+
+class UsageError(Exception):
+    pass
+
+
+KNOWN_FLAGS = frozenset("""--amend --approve --archive --audit --baseline --by --change --ci --depth --detect --diff --down
+--export --fingerprint --gate --help --impact --install-hooks --ir-open --json --limit --list --living --matrix --mermaid
+--next-id --no-run --note --overview --quiet --reconfirm --run --show --story --sync --task-done --task-start --trace --up
+--version --view --words""".split())
 
 
 def rest_after(args: list[str], name: str) -> list[str]:
@@ -356,7 +384,7 @@ def out_of_scope(project: Path, layout: dict, name: str, feat: dict, text: str) 
     skip = set(read_baseline(project, name, feat)[1])
     bad = []
     for rel in files:
-        if rel in skip or rel == ".gitignore" or rel.startswith(".tracespec") or classify(rel, layout) in ("protected", "test"):
+        if rel in skip or rel == ".gitignore" or rel == STATE or rel.startswith(".tracespec/") or classify(rel, layout) in ("protected", "test"):
             continue
         if any(part in SKIP_DIRS for part in rel.split("/")[:-1]):
             continue
@@ -376,7 +404,8 @@ def evaluate(project: Path, layout: dict, problems: list[str], change: str | Non
     state = load_state(project)
     name, feat = active_change(state, change)
     if not name or not feat:
-        f.add("STATE002", "error", "no active change in .tracespec.json (activeChange / changes)", "developer")
+        f.add("STATE002", "error", "no active change in .tracespec.json: name one with --change NAME, or start one with "
+              "/tracespec propose", "developer")
         return f, {}, None
     ch = load_change(project, name)
     stats: dict = {"change": name, "tier": "small" if feat.get("tier") == "small" else "standard"}
@@ -457,6 +486,8 @@ def evaluate(project: Path, layout: dict, problems: list[str], change: str | Non
                   "changes)", "developer")
         if bad is None:
             stats["scope"] = "not checked (no git)"
+            f.add("CHG002", "warning", "the scope check (changed files against 'Affected areas') was skipped: this is not a "
+                  "git repository", "developer")
         task_rows = tracing.parse_tasks(ch["tasks_text"])
         for i, o in sorted(ops.items()):
             if o in ("ADDED", "MODIFIED") and i.startswith(("FR-", "NFR-", "AC-")):
@@ -581,9 +612,9 @@ def record_baseline(project: Path, layout: dict, state: dict, change: str | None
     import results
     name, feat = active_change(state, change)
     if not name or not feat:
-        print("no active change in .tracespec.json")
+        print("no active change in .tracespec.json: name one with --change NAME, or start one with /tracespec propose")
         return 2
-    cases, err = results.run_tests(project, layout)
+    cases, err = results.run_tests(project, layout, verbose=True)
     if err:
         print("CANNOT RUN: " + err)
         return 2
@@ -636,7 +667,7 @@ def cmd_task_done(project, layout, args) -> int:
         if err:
             print("CANNOT RUN: " + err)
             return 2
-        passing = {i for c in cases if c["status"] == "pass" for i in c["ids"]}
+        passing = ledger.passing_ids(layout, cases)
         missing = [a for a in acs if a not in passing]
         if missing:
             print(f"NOT DONE: no passing test for {', '.join(missing)}")
@@ -835,9 +866,8 @@ def cmd_list(project) -> int:
 
 
 def cmd_show(project, args) -> int:
-    name = opt(args, "--show")
     state = load_state(project)
-    _, feat = active_change(state, name)
+    name, feat = active_change(state, opt(args, "--show"))
     if not feat:
         print(f"{name}: no such change")
         return 2
@@ -949,6 +979,8 @@ def cmd_trace(project, layout, args) -> int:
     if not target or target.startswith("--"):
         print(f"{flag} <target>: a rule or criterion ID, a test name, a task (T-2), a file, file::symbol, file:line, a ticket, a capability")
         return 2
+    depth = int_opt(args, "--depth", 8, 1, 50)
+    limit = int_opt(args, "--limit", 120, 1, 10000)
     g = graph.build(project, inflight_graphs(project, layout))
     now = graph.Now(project)
     ids = graph.resolve(g, now, target)
@@ -957,8 +989,6 @@ def cmd_trace(project, layout, args) -> int:
               "file:line, a ticket or a capability)")
         return 1
     mode = "up" if "--up" in args else "down" if "--down" in args else "story" if "--story" in args else "both"
-    depth = int(opt(args, "--depth") or 8)
-    limit = int(opt(args, "--limit") or 120)
     lines, shown = graph.render(g, now, ids[:12], mode, depth, limit)
     if "--json" in args:
         print(json.dumps(graph.to_json(g, now, shown, ids[:12]), indent=2))
@@ -1032,9 +1062,27 @@ def main(argv: list[str]) -> int:
     if not argv:
         print(__doc__)
         return 2
-    if argv[0] in ("--version", "-V"):
+    if any(a in ("-h", "--help") for a in argv):
+        print(__doc__)
+        return 0
+    if any(a in ("--version", "-V") for a in argv):
         print(read(Path(__file__).resolve().parent.parent / "VERSION") or "unknown", end="")
         return 0
+    unknown = [a for a in argv if a.startswith("--") and a not in KNOWN_FLAGS]
+    if unknown:
+        print(f"unknown option {unknown[0]} (check.py --help lists them)")
+        return 2
+    if argv[0].startswith("--") and argv[0] not in ("--fingerprint", "--detect"):
+        print(f"the project folder comes first: check.py <project> {argv[0]} ...")
+        return 2
+    try:
+        return run(argv)
+    except (StateError, UsageError) as e:
+        print(e)
+        return 2
+
+
+def run(argv: list[str]) -> int:
     if argv[0] == "--fingerprint" and len(argv) == 2:
         text = read(Path(argv[1]))
         if text is None:
@@ -1098,7 +1146,7 @@ def main(argv: list[str]) -> int:
     if "--next-id" in args:
         return cmd_next_id(project, args)
 
-    gate = int(opt(args, "--gate") or 0)
+    gate = int_opt(args, "--gate", 0, 0, 5)
     f, stats, ctx = evaluate(project, layout, problems, change, gate, run="--run" in args or gate >= 4,
                              matrix="--matrix" in args)
     rc = finish(project, f, stats, gate)

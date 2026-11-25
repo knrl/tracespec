@@ -120,7 +120,7 @@ rule FR-1 [checkout]  The total of a cart is the sum of its item prices as a flo
     verifies  test tests/test_cart.py::test_AC1_total_is_a_float_before_any_discount   <ok>
 ```
 
-That is real output from [`examples/shop`](examples/shop). You can ask about a rule or criterion ID, a test, a task, a file,
+That is real output from [`examples/shop`](examples/shop), shortened. You can ask about a rule or criterion ID, a test, a task, a file,
 `file::symbol`, `file:line`, a ticket, or a whole capability. "Why does this line exist?", "What was built for ticket X?", "Which
 tests protect this function?"
 

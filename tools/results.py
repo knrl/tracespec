@@ -51,8 +51,9 @@ def parse_junit(files: list[Path]) -> list[dict]:
     return cases
 
 
-def run_tests(project: Path, layout: dict) -> tuple[list[dict], str | None]:
-    """Run the suite; (cases, None) or ([], why it could not be run)."""
+def run_tests(project: Path, layout: dict, verbose: bool = False) -> tuple[list[dict], str | None]:
+    """Run the suite; (cases, None) or ([], why it could not be run). verbose adds the last lines of the command's error
+    output to that reason: for the coordinator only, since it can contain test or code text."""
     cmd = layout["testCmd"]
     if not cmd:
         return [], "layout.testCmd is empty in .tracespec.json: discovery (propose) must set the test command"
@@ -64,19 +65,28 @@ def run_tests(project: Path, layout: dict) -> tuple[list[dict], str | None]:
             pass
     env = dict(os.environ, **{k: str(v) for k, v in layout["testEnv"].items()})
     try:
-        subprocess.run(cmd, cwd=project, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=TIMEOUT)
+        ran = subprocess.run(cmd, cwd=project, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+                             errors="replace", timeout=TIMEOUT)
     except FileNotFoundError:
         return [], f"the test command '{cmd[0]}' was not found"
     except subprocess.TimeoutExpired:
         return [], f"the test command ran longer than {TIMEOUT} seconds"
     files = [Path(p) for p in glob.glob(pattern, recursive=True)]
     if not files:
-        return [], (f"the test command wrote no JUnit file at {layout['junit']}: it may have failed before running "
-                    "any test. The coordinator can run it directly to see why")
+        tail = " | ".join((ran.stderr or "").strip().splitlines()[-5:]) if verbose else ""
+        why = f" Its last error output: {tail}" if tail else " Run it yourself in the project folder to see why."
+        return [], (f"the test command wrote no JUnit file at {layout['junit']}: it may have failed before running any "
+                    f"test. Command: {' '.join(cmd)}." + why)
     try:
         cases = parse_junit(files)
     except ET.ParseError as e:
         return [], f"the JUnit file could not be read: {e}"
+    finally:
+        for f in files:                      # the report holds test source and tracebacks: no agent may read it afterwards
+            try:
+                f.unlink()
+            except OSError:
+                pass
     return cases, None
 
 

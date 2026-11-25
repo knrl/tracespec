@@ -6,6 +6,33 @@ format of what TraceSpec writes into a project; the notes say so when they do.
 
 ## [Unreleased]
 
+### Fixed
+
+- A corrupt or truncated `.tracespec.json` is now an error (exit 2) that leaves the file alone. It used to read as "no changes", and
+  the next write could have erased it. The state file is written atomically.
+- One failing test that names a criterion now uncovers it in `--audit`, `--reconfirm` and `--task-done`, even when another test that
+  names it passes.
+- Unknown options, missing values, bad numbers and a project folder that is not first stop with a message and exit 2 instead of
+  silently running a different check or crashing. `--help` and `--version` work anywhere.
+- A damaged `current.db` cache is rebuilt instead of crashing every command (a locked one is left alone). A baseline under a path with
+  `#` or `%` can be read. A damaged ledger or a non-object state file is reported, not raised.
+- The scope check (CHG001) works in a project that is a subfolder of a git repository and with non-ASCII file names, and its
+  absence without git is now a warning (CHG002). Folders named `bin`, `obj`, `target`, `dist` or `venv` below the project root are no
+  longer skipped.
+- The overview check no longer flags `TODO` or `<<` inside code, and no longer crashes on a file that is not UTF-8. A UTF-8 byte order
+  mark no longer degrades a Python file to region symbols. An empty `--trace` query matches nothing.
+- Reading the baselines for many criteria is linear, not quadratic.
+
+### Security
+
+- The guard hook fails closed on a malformed event, matches folder names case-insensitively, checks every path in a shell command
+  (including `..` detours and layouts whose globs have no folder prefix), refuses git commands that print file contents, and refuses
+  search patterns that climb out of the folder.
+- The JUnit report is deleted after it is read, because it holds test source and tracebacks. `results.py` never shows the test
+  command's error output to the build agents; `check.py` shows it to the coordinator.
+- The agents' hook runs with the Python that installed it, not a bare `python` that many systems do not have. The installer says when it
+  replaces an agent file.
+
 ### Changed
 
 - **A smaller `.tracespec.json`.** The list of pre-existing test names moved from the state file to

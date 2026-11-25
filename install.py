@@ -39,10 +39,15 @@ def install(skills_dir: Path, agents_dir: Path) -> list[str]:
         done.append(f"skill: copied to {target}")
     agents_dir.mkdir(parents=True, exist_ok=True)
     for tpl in sorted((HERE / "templates" / "agents").glob("*.md")):
-        text = tpl.read_text(encoding="utf-8").replace("{skill_dir}", target.resolve().as_posix())
-        with open(agents_dir / tpl.name, "w", encoding="utf-8", newline="\n") as f:
+        # the hook runs with the Python that installed it: a bare "python" is missing on many Linux and macOS systems,
+        # and a hook that cannot start would silently switch the isolation of tests and code off
+        text = (tpl.read_text(encoding="utf-8").replace("{skill_dir}", target.resolve().as_posix())
+                .replace("{python}", Path(sys.executable).as_posix()))
+        dest = agents_dir / tpl.name
+        changed = dest.is_file() and dest.read_text(encoding="utf-8") != text
+        with open(dest, "w", encoding="utf-8", newline="\n") as f:
             f.write(text)
-        done.append(f"agent: {agents_dir / tpl.name}")
+        done.append(f"agent: {dest}" + (" (updated; any local edits to it were replaced)" if changed else ""))
     return done
 
 

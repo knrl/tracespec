@@ -48,7 +48,7 @@ def _make(path: str, name: str, kind: str, start: int, end: int, lines: list[str
 def python_symbols(path: str, text: str) -> list[dict] | None:
     """Exact symbols of a Python file, or None when it does not parse."""
     try:
-        tree = ast.parse(text)
+        tree = ast.parse(text.lstrip(chr(0xFEFF)))          # a byte order mark is not a syntax error
     except (SyntaxError, ValueError):
         return None
     lines = text.replace("\r\n", "\n").split("\n")

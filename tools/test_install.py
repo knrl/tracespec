@@ -28,6 +28,10 @@ class InstallTests(unittest.TestCase):
                 text = (agents / name).read_text(encoding="utf-8")
                 self.assertNotIn("{skill_dir}", text)
                 self.assertIn(target.resolve().as_posix() + "/tools/guard.py", text)
+                self.assertNotIn("{python}", text)
+                if "guard.py" in text:                         # the hook command is a YAML string, so its quotes are escaped
+                    self.assertIn('\\"' + Path(sys.executable).as_posix() + '\\" \\"' + target.resolve().as_posix()
+                                  + '/tools/guard.py\\"', text)
 
     def test_an_update_removes_files_the_new_version_no_longer_has(self):
         with tempfile.TemporaryDirectory() as tmp:

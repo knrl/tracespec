@@ -1,7 +1,7 @@
 ---
 name: tracespec
 description: TraceSpec (traceable spec-driven development) is an automated requirements traceability matrix combined with acceptance-test-driven builds, run by agents. It guides a developer through changing an existing project one change at a time, with as few stops as possible - explore, propose (clarify, then a change folder of proposal, delta specs, design and tasks, approved once), apply (tests written from the specs by one agent, code by another), verify (independent review, plus one concise developer overview per feature), archive (deltas merge into living specs that are locked and audited for drift). All agent-oriented files live in .tracespec/. Works with any language or framework. Use for "/tracespec <request>", "/tracespec explore|propose|apply|update|verify|archive|audit|trace|list|view", or when someone wants to start, continue or change work built with this process.
-argument-hint: [explore|propose|apply|update|verify|archive|audit|trace|list|view] <request or change name>
+argument-hint: [explore|propose|apply|update|verify|archive|audit|trace|list|show|view] <request or change name>
 ---
 
 # TraceSpec: traceable spec-driven development
@@ -211,7 +211,7 @@ A spec gap found in apply, or a finding in verify, sends the work back to [updat
 
 ## Agents
 
-`tracespec-test-writer` and `tracespec-coder` live in `~/.claude/agents/`, installed from [templates/agents/](templates/agents/) by apply, with `{skill_dir}` replaced by this skill's folder. They are loaded when a session starts, so after installing, a new session may be needed. Their hook is [tools/guard.py](tools/guard.py). The coding loop is [workflows/build-loop.md](workflows/build-loop.md).
+`tracespec-test-writer` and `tracespec-coder` live in `~/.claude/agents/`. `python install.py` writes them from [templates/agents/](templates/agents/), with `{skill_dir}` replaced by this skill's folder and `{python}` by the Python that ran the installer. They are loaded when a session starts, so after installing, a new session may be needed. Their hook is [tools/guard.py](tools/guard.py). The coding loop is [workflows/build-loop.md](workflows/build-loop.md).
 
 ## Consistency check (by hand, when the tool cannot run)
 

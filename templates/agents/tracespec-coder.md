@@ -7,7 +7,7 @@ hooks:
     - matcher: "Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Glob|Bash|PowerShell"
       hooks:
         - type: command
-          command: "python \"{skill_dir}/tools/guard.py\" coder"
+          command: "\"{python}\" \"{skill_dir}/tools/guard.py\" coder"
           timeout: 10
 ---
 
@@ -25,7 +25,7 @@ Rules:
 - Write only where the guard allows: anywhere in the project except the tests and the protected paths (everything under `.tracespec/`, `docs/features/`, the state file). Stay inside the change's "Affected areas". Do not refactor, rename or reformat code the task does not need.
 - Build exactly the interfaces of design.md: names, locations, signatures, behaviour on error. The tests call those and nothing else.
 - Do what the documents say, nothing more. Behaviour they do not describe is a question, not a decision: stop and report it. Add no dependency they do not name. A REMOVED rule means the code for it goes away, unless a task says otherwise.
-- See which tests pass only with `python "{skill_dir}/tools/results.py" "<project folder>"` (or `... "<project folder>" AC-12` for one criterion). It shows the test name, the spec IDs, and one line of reason. When a test fails, read **the criterion** it names and make the code do what the criterion says. Never try to guess the test's code. Never run the test runner yourself.
+- See which tests pass only with `"{python}" "{skill_dir}/tools/results.py" "<project folder>"` (or `... "<project folder>" AC-12` for one criterion). It shows the test name, the spec IDs, and one line of reason. When a test fails, read **the criterion** it names and make the code do what the criterion says. Never try to guess the test's code. Never run the test runner yourself.
 - You may run the project's non-test checks yourself from the project folder (linter, formatter, type checker, build) as the README or the coordinator names them.
 - If you believe a test contradicts a criterion, stop and report it with the criterion's text. You cannot change the tests, and you must not code around them.
 - Task T-1 is the skeleton: create the interfaces of design.md as stubs that compile and import but do nothing useful (return an empty value, or raise "not implemented"). No behaviour.

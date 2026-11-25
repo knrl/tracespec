@@ -13,8 +13,9 @@ import re
 from pathlib import Path
 
 STATE = ".tracespec.json"
-SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "target", ".idea", ".vscode",
-             ".pytest_cache", ".mypy_cache", ".ruff_cache", "bin", "obj", ".gradle"}
+SKIP_DIRS = {".git", "node_modules", ".venv", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache",
+             ".ruff_cache", ".gradle"}
+ROOT_SKIP_DIRS = {"venv", "dist", "target", "bin", "obj"}      # build output at the project root; real code deeper down
 
 DEFAULT_LAYOUT = {
     "tests": ["tests/**"],            # hidden from the coder; the only place the test writer may write
@@ -125,11 +126,32 @@ def find_project(path: str | Path) -> Path | None:
     return None
 
 
+class StateError(Exception):
+    """The state file exists but cannot be used. Never treated as an empty project: a write would erase it."""
+
+
 def load_state(project: Path) -> dict:
     try:
-        return json.loads((project / STATE).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        text = (project / STATE).read_text(encoding="utf-8")
+    except FileNotFoundError:
         return {}
+    except (OSError, UnicodeDecodeError) as e:
+        raise StateError(f"{STATE} cannot be read: {e}")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise StateError(f"{STATE} is not valid JSON ({e}). Restore it from git; nothing was changed")
+    if not isinstance(data, dict):
+        raise StateError(f"{STATE} must contain a JSON object. Restore it from git; nothing was changed")
+    return data
+
+
+def write_atomic(path: Path, text: str) -> None:
+    """Write a file so that a crash leaves either the old or the new content, never a half-written one."""
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(text)
+    os.replace(tmp, path)
 
 
 def layout_of(project: Path | None) -> tuple[dict, list[str]]:
@@ -174,7 +196,8 @@ def classify(rel: str | None, layout: dict) -> str:
 def walk_files(project: Path):
     """Relative posix paths of the project's files, without build and tool folders."""
     for root, dirs, files in os.walk(project):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        top = Path(root) == project
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not (top and d in ROOT_SKIP_DIRS)]
         for f in files:
             yield (Path(root) / f).relative_to(project).as_posix()
 

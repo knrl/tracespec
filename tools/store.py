@@ -82,7 +82,7 @@ def read_baseline(project: Path, cap: str) -> dict | None:
     if not path.is_file():
         return None
     try:
-        conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        conn = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)
     except sqlite3.Error:
         return None
     try:
@@ -98,6 +98,9 @@ def read_baseline(project: Path, cap: str) -> dict | None:
 
 # ---- the current cache -------------------------------------------------------------------------------------
 
+CACHE_TIMEOUT = 30          # seconds to wait for another command that holds the cache
+
+
 def cache_path(project: Path) -> Path:
     return project / INTERNAL / "cache" / "current.db"
 
@@ -110,13 +113,30 @@ def cache(project: Path):
     ignore = path.parent.parent / ".gitignore"
     if not ignore.exists():
         ignore.write_text("cache/\n", encoding="utf-8")
-    conn = sqlite3.connect(path)
+    def opened() -> sqlite3.Connection:
+        c = sqlite3.connect(path, timeout=CACHE_TIMEOUT)
+        try:
+            c.executescript(CACHE_SCHEMA)
+            try:                               # a cache made before seen_ns existed
+                c.execute("ALTER TABLE filecache ADD COLUMN seen_ns INTEGER")
+            except sqlite3.OperationalError:
+                pass
+        except sqlite3.DatabaseError:
+            c.close()
+            raise
+        return c
+
     try:
-        conn.executescript(CACHE_SCHEMA)
-        try:                                   # a cache made before seen_ns existed
-            conn.execute("ALTER TABLE filecache ADD COLUMN seen_ns INTEGER")
-        except sqlite3.OperationalError:
-            pass
+        conn = opened()
+    except sqlite3.OperationalError as e:
+        if "not a database" not in str(e) and "malformed" not in str(e):
+            raise                              # locked, read-only, out of space: not damage, so never delete the file
+        path.unlink(missing_ok=True)
+        conn = opened()
+    except sqlite3.DatabaseError:              # the cache is only a cache: a damaged one is deleted and rebuilt
+        path.unlink(missing_ok=True)
+        conn = opened()
+    try:
         yield conn
         conn.commit()
     finally:

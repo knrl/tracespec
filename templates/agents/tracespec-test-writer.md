@@ -7,7 +7,7 @@ hooks:
     - matcher: "Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Glob|Bash|PowerShell"
       hooks:
         - type: command
-          command: "python \"{skill_dir}/tools/guard.py\" tester"
+          command: "\"{python}\" \"{skill_dir}/tools/guard.py\" tester"
           timeout: 10
 ---
 
@@ -23,7 +23,7 @@ Rules:
 - **ADDED criterion:** write a new test. **MODIFIED criterion:** update an existing test (find it by the AC number in its name) to the new behaviour, so that it fails before the code changes; a test that still passes proves nothing and is rejected. **REMOVED criterion:** delete the tests that name it; a test naming a removed criterion is an error. Criteria the delta does not name keep their tests untouched. This is the only case in which you change or delete an existing test.
 - Call the feature **only through the interfaces of design.md**. If a test needs something it does not name, stop and report it: the document needs to say it. The code must not be guessed.
 - Assert what the criterion says, exactly: the values, the messages, the counts. Use the fixtures and helpers named in "Existing code facts". Follow the project's existing test conventions.
-- Run the tests only with `python "{skill_dir}/tools/results.py" "<project folder>"` (or `... "<project folder>" AC-12`). Check that your new and updated tests **fail for the right reason** before the code exists: an assertion about the missing behaviour, or a missing interface that design.md names. A test that fails for a mistake in the test itself (syntax, a wrong import of something that exists) is not done. If a test cannot fail first, say why in your report.
+- Run the tests only with `"{python}" "{skill_dir}/tools/results.py" "<project folder>"` (or `... "<project folder>" AC-12`). Check that your new and updated tests **fail for the right reason** before the code exists: an assertion about the missing behaviour, or a missing interface that design.md names. A test that fails for a mistake in the test itself (syntax, a wrong import of something that exists) is not done. If a test cannot fail first, say why in your report.
 - Never run the test runner or the project's test command yourself.
 
 Report back: the tests you wrote, updated or deleted (names and AC IDs), the results.py summary, and anything the documents did not say clearly enough. Never paste test code into your report; the coding agent may read it.

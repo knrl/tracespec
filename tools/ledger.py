@@ -48,6 +48,15 @@ def ledger_lines(project: Path, cap: str) -> list[str]:
     return [l for l in text.split("\n") if l.strip()]
 
 
+def passing_ids(layout: dict, cases: list[dict] | None) -> set[str]:
+    """Criteria with a passing test and no failing test. One failing test that names a criterion is enough to uncover it
+    (a test listed in layout.knownFailing is ignored)."""
+    known = set(layout.get("knownFailing") or [])
+    ok = {i for c in (cases or []) if c["status"] == "pass" for i in c["ids"]}
+    bad = {i for c in (cases or []) if c["status"] in ("fail", "error") and c["name"] not in known for i in c["ids"]}
+    return ok - bad
+
+
 def append_ledger(project: Path, cap: str, entry: dict) -> None:
     lines = ledger_lines(project, cap)
     prev = line_hash(lines[-1]) if lines else "genesis"
@@ -59,7 +68,10 @@ def append_ledger(project: Path, cap: str, entry: dict) -> None:
 
 
 def verify_ledger(project: Path, cap: str, current_spec_hash: str, current_trace_hash: str | None = None) -> list[str]:
-    lines = ledger_lines(project, cap)
+    try:
+        lines = ledger_lines(project, cap)
+    except UnicodeDecodeError:
+        return ["the ledger (history.jsonl) is not valid UTF-8 text"]
     if not lines:
         return ["the ledger (history.jsonl) is missing or empty"]
     problems: list[str] = []
@@ -70,6 +82,8 @@ def verify_ledger(project: Path, cap: str, current_spec_hash: str, current_trace
             entry = json.loads(line)
         except json.JSONDecodeError:
             return [f"ledger line {n} is not valid JSON"]
+        if not isinstance(entry, dict):
+            return [f"ledger line {n} is not a JSON object"]
         if entry.get("seq") != n:
             problems.append(f"ledger line {n} has seq {entry.get('seq')}")
         if entry.get("prev") != prev:
@@ -85,16 +99,41 @@ def verify_ledger(project: Path, cap: str, current_spec_hash: str, current_trace
 
 # ---- git and tasks -----------------------------------------------------------------------------------------
 
+def _porcelain_paths(out: str, project: Path) -> list[str]:
+    """Paths from `git status --porcelain -z`, relative to the project (git reports them from the repository root) and
+    without the files outside it."""
+    try:
+        prefix = subprocess.run(["git", "-C", str(project), "rev-parse", "--show-prefix"], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", timeout=30).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        prefix = ""
+    parts, paths, i = out.split("\0"), [], 0
+    while i < len(parts):
+        entry = parts[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        if entry[0] in "RC":                 # a rename or copy lists the old path next
+            i += 1
+        path = entry[3:]
+        if prefix:
+            if not path.startswith(prefix):
+                continue
+            path = path[len(prefix):]
+        paths.append(path)
+    return paths
+
+
 def changed_files(project: Path) -> list[str] | None:
     """Files git reports as changed or new, or None when this is not a git repository."""
     try:
-        p = subprocess.run(["git", "-C", str(project), "status", "--porcelain", "-uall"],
-                           capture_output=True, text=True, timeout=30)
+        p = subprocess.run(["git", "-C", str(project), "-c", "core.quotepath=false", "status", "--porcelain", "-uall", "-z"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
     except (OSError, subprocess.TimeoutExpired):
         return None
     if p.returncode != 0:
         return None
-    return [line[3:].split(" -> ")[-1].strip().strip('"').replace("\\", "/") for line in p.stdout.splitlines()]
+    return _porcelain_paths(p.stdout, project)
 
 
 def tick_task(tasks_text: str, tid: str, files: list[str], syms: list[str]) -> str | None:
@@ -149,12 +188,15 @@ def basis_nodes(project: Path) -> dict[str, list[str]]:
         if not base:
             continue
         children: dict[str, list[str]] = defaultdict(list)
-        for s, d, _k in base["edges"]:
+        covers_of: dict[str, list[str]] = defaultdict(list)        # criterion -> the rules it covers (one pass, not one per criterion)
+        for s, d, k in base["edges"]:
             children[d].append(s)
+            if k == "covers":
+                covers_of[s].append(d)
         for ac, (kind, _t, _h) in base["nodes"].items():
             if kind != "criterion":
                 continue
-            rules = [d for s, d, k in base["edges"] if s == ac and k == "covers"]
+            rules = covers_of.get(ac, [])
             nodes, stack = set(), [ac, *rules]
             while stack:
                 n = stack.pop()
@@ -184,7 +226,7 @@ def audit(project: Path, layout: dict, cases: list[dict] | None) -> list[dict]:
     out: list[dict] = []
     root = specs_dir(project)
     names = sorted(d.name for d in root.iterdir() if d.is_dir()) if root.is_dir() else []
-    passing = {i for c in (cases or []) if c["status"] == "pass" for i in c["ids"]}
+    passing = passing_ids(layout, cases)
     all_ac: set[str] = set()
     for cap in names:
         spec_file = cap_path(project, cap) / "spec.md"
@@ -261,7 +303,7 @@ def reconfirm(project: Path, layout: dict, cap_names: list[str], note: str, case
     by_hash: dict[str, str] = {}
     for sid, s in syms.items():
         by_hash.setdefault(s["hash"], sid)
-    passing = {i for c in cases if c["status"] == "pass" for i in c["ids"]}
+    passing = passing_ids(layout, cases)
     plan = []
     for cap in cap_names:
         spec_file = cap_path(project, cap) / "spec.md"

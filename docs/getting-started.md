@@ -5,8 +5,9 @@
 - [Claude Code](https://claude.com/claude-code).
 - Python 3.10 or newer. TraceSpec has no other dependencies.
 - A project with a test runner that can write JUnit XML (pytest, vitest, jest with `jest-junit`, Go with `gotestsum`, Maven, Gradle,
-  dotnet with a JUnit logger). Step 0 of your first change tells you if something is missing.
-- Optional: `git` (enables the scope check and git hooks) and [universal-ctags](https://ctags.io) (better symbols for languages other
+  dotnet with a JUnit logger). For Python, `pip install pytest`. Step 0 of your first change runs the suite and tells you what is
+  missing; if it cannot run, [Troubleshooting](troubleshooting.md) lists the usual causes.
+- Optional: `git` (enables the scope check, finding CHG001, and git hooks; without it the check is skipped with a warning) and [universal-ctags](https://ctags.io) (better symbols for languages other
   than Python).
 
 ## Install

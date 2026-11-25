@@ -716,6 +716,25 @@ class GitTests(unittest.TestCase):
             (env.root / "stray.py").unlink()
             self.assertEqual(env.run("--archive", "--ir-open", "0")[0], 0)
 
+    def test_scope_check_without_git_is_a_warning_not_silence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = Env(tmp)
+            env.add_change("add-cart", DELTA_1, TASKS_OPEN)
+            self.assertEqual(env.approve()[0], 0)
+            env.tasks_file("add-cart").write_text(TASKS_DONE_1)
+            rc, out = env.run("--gate", "4")
+            self.assertIn("CHG002", out)
+            self.assertNotIn("CHG001", out)
+
+    def test_scope_check_with_git_has_no_chg002(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = Env(tmp)
+            subprocess.run(["git", "-C", tmp, "init", "-q"], capture_output=True, check=True)
+            env.add_change("add-cart", DELTA_1, TASKS_OPEN)
+            self.assertEqual(env.approve()[0], 0)
+            env.tasks_file("add-cart").write_text(TASKS_DONE_1)
+            self.assertNotIn("CHG002", env.run("--gate", "4")[1])
+
     def test_the_state_file_does_not_grow_with_tests_or_finished_changes(self):
         with tempfile.TemporaryDirectory() as tmp:
             env = Env(tmp)

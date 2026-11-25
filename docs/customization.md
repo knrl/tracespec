@@ -88,7 +88,7 @@ Then `trace JIRA-482` lists everything built for the ticket, down to tests and c
 `check.py` syncs the live layer at the start of every command. To keep it current between commands:
 
 ```bash
-python tools/check.py . --install-hooks
+python ~/.claude/skills/tracespec/tools/check.py . --install-hooks
 ```
 
 installs git hooks (post-commit, post-merge, post-checkout) that run `--sync` and never block, and prints an optional Claude Code
@@ -100,7 +100,7 @@ The documents the agents write come from `templates/`, and their behaviour from 
 clone and run `python install.py`; an update from upstream overwrites an installed copy.
 
 The checker reads the **shape** of the templates, so keep these intact: the headings *Goal*, *Existing code facts*, *Interfaces the
-tests call* and *Affected areas*; the `ADDED`, `MODIFIED` and `REMOVED` headings and `Capability:` lines in a delta; the column order of
+tests call* and *Affected areas*; the `ADDED`, `MODIFIED` and `REMOVED` headings in a delta (its capability is the folder it sits in); the column order of
 the rule, criterion and non-goal tables; and the checkbox format of tasks. Run the tests after any template change.
 
 ## Using the checks in CI

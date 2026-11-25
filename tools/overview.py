@@ -92,8 +92,8 @@ def refresh(project: Path, layout: dict, name: str, facts: str, title: str, crea
         path.parent.mkdir(parents=True, exist_ok=True)
         text = skeleton(title)
     else:
-        text = path.read_text(encoding="utf-8")
-    block = f"{BEGIN}\n{facts}\n{END}"
+        text = path.read_text(encoding="utf-8", errors="replace")
+    block =f"{BEGIN}\n{facts}\n{END}"
     if BEGIN in text and END in text:
         text = re.sub(re.escape(BEGIN) + r".*?" + re.escape(END), lambda m: block, text, count=1, flags=re.S)
     else:
@@ -143,7 +143,7 @@ def check_overview(project: Path, layout: dict, name: str, add) -> None:
     if not path.is_file():
         add("OVERVIEW001", "error", f"{rel} does not exist: run `check.py <project> --overview`, then write its narrative")
         return
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8", errors="replace")
     secs = sections(text)
     for key, title in REQUIRED:
         body = next((b for h, b in secs.items() if key in h), None)
@@ -151,7 +151,8 @@ def check_overview(project: Path, layout: dict, name: str, add) -> None:
             add("OVERVIEW004", "error", f"{rel} has no section '{title}'")
         elif len(re.sub(r"\s+", "", re.sub(r"<!--.*?-->", "", body, flags=re.S))) < MIN_BODY:
             add("OVERVIEW007", "error", f"the '{title}' section of {rel} is empty or too short")
-    if re.search(r"\bTBD\b|\bTODO\b|<<", text):
+    prose = re.sub(r"```.*?```|`[^`\n]*`", "", text, flags=re.S)       # code may say TODO or use <<
+    if re.search(r"\bTBD\b|\bTODO\b|<<[^<>\n]+>>", prose):
         add("OVERVIEW005", "error", f"{rel} still has TBD, TODO or <<placeholder>> text")
     if BEGIN not in text or END not in text:
         add("OVERVIEW006", "error", f"{rel} has no facts block: run `check.py <project> --overview`")

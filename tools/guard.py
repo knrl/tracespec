@@ -68,7 +68,23 @@ def locate(cwd: Path, p: str) -> tuple[Path | None, str | None]:
 def segment_pattern(folder: str) -> re.Pattern:
     """Matches the folder's last name as a whole path segment ('tests', not 'run_tests.py')."""
     name = re.escape(folder.split("/")[-1])
-    return re.compile(r"(^|[\s\\/'\"=:(,*])" + name + r"([\s\\/'\"),*]|$)")
+    return re.compile(r"(^|[\s\\/'\"=:(,*<>|;&`{\[@])" + name + r"([\s\\/'\"),*<>|;&`}\]]|$)", re.IGNORECASE)
+
+
+# git subcommands that print file contents (a diff of an uncommitted test, a grep through the tests) or restore files
+GIT_SHOWS_CONTENT = re.compile(
+    r"\bgit\b[^|;&]*?\s(diff|difftool|show|grep|stash|blame|cat-file|archive|restore|checkout)\b"
+    r"|\bgit\b[^|;&]*?\slog\b[^|;&]*(\s-\w*[pu]\b|--(patch|stat|name|raw|summary|cc))")
+
+
+def shell_paths(cmd: str) -> list[str]:
+    """The words of a shell command that could be paths (quotes and the value of --opt=value taken off)."""
+    out = []
+    for word in re.split(r"[\s;|&<>()`]+", cmd):
+        word = word.split("=")[-1].strip("'\"")
+        if word and not word.startswith("-"):
+            out.append(word)
+    return out
 
 
 class Rules:
@@ -116,11 +132,14 @@ def main() -> None:
         deny(f"guard.py needs a role: {', '.join(ROLES)}")
     try:
         event = json.load(sys.stdin)
-    except json.JSONDecodeError:
-        sys.exit(0)
-    cwd = Path(event.get("cwd") or os.getcwd())
-    tool = str(event.get("tool_name", ""))
-    data = event.get("tool_input") or {}
+        cwd = Path(event.get("cwd") or os.getcwd())
+        tool = str(event.get("tool_name", ""))
+        data = event.get("tool_input") or {}
+        if not isinstance(data, dict):
+            raise ValueError("tool_input is not an object")
+    except (ValueError, AttributeError, OSError):          # a hook that cannot read its event must not let the call through
+        deny("The guard could not read the tool call (tracespec), so it was stopped. Try again; if it keeps happening, "
+             "tell the developer.")
 
     if tool in READ_TOOLS | WRITE_TOOLS:
         project, r = locate(cwd, str(data.get("file_path") or data.get("notebook_path") or ""))
@@ -150,6 +169,10 @@ def main() -> None:
                 deny(f"Searching {r} would cover the hidden files. Give path= a folder that contains none of them, "
                      f"for example docs/ or the folder you write in. {rules.why}")
             pattern = str(data.get("pattern") or "") + " " + str(data.get("glob") or "")
+            path_glob = str(data.get("pattern") or "") if tool == "Glob" else str(data.get("glob") or "")   # Grep's pattern is text
+            if re.search(r"(^|[\s/\\])\.\.([\s/\\]|$)|^([/~]|[A-Za-z]:)", path_glob):
+                deny("A search pattern may not climb out of the folder (..) or start at the root or the home folder; "
+                     f"give the folder in path= and keep the pattern inside it. {rules.why}")
             for p in rules.prefixes:
                 if p and segment_pattern(p).search(pattern):
                     deny(f"The search pattern names {p}/. {rules.why}")
@@ -158,10 +181,21 @@ def main() -> None:
     if tool in SHELL_TOOLS:
         cmd = str(data.get("command") or "")
         project = find_project(cwd.resolve())
+        if project is None:                                # a session opened elsewhere: the project is named by an absolute path
+            for word in shell_paths(cmd):
+                if Path(word).is_absolute() and (project := find_project(Path(word))) is not None:
+                    break
         rules = Rules(role, project, cwd)
         for p in rules.prefixes:
             if p and segment_pattern(p).search(cmd):
                 deny(f"The command names {p}/. {rules.why}")
+        for word in shell_paths(cmd):                      # also catches ../ detours and globs with no folder prefix
+            where, rel = locate(cwd, word)
+            if where is not None and rules.hidden_at(rel):
+                deny(f"The command reads {rel}. {rules.why}")
+        if GIT_SHOWS_CONTENT.search(cmd):
+            deny("git commands that print file contents (diff, show, grep, log -p, stash, blame, restore, checkout) could show "
+                 f"the hidden files. Use git status, or read the files you may see by name. {rules.why}")
         test_cmd = " ".join(rules.layout["testCmd"])
         if DIRECT_TEST_RUN.search(cmd) or (test_cmd and test_cmd in cmd):
             deny("Run the tests only with: python <tracespec skill folder>/tools/results.py <project folder> "

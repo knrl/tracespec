@@ -136,6 +136,8 @@ def resolve(g: Graph, now: Now, target: str) -> list[str]:
     caps = sorted({n["cap"] for n in g.nodes.values() if n["cap"]})
     if t in caps:
         return sorted((i for i, n in g.nodes.items() if n["cap"] == t and n["kind"] == "rule"), key=lambda x: living.id_key(x))
+    if not t.strip():
+        return []
     tests = sorted(i for i, n in g.nodes.items() if n["kind"] == "test" and (t in i or t in n["text"]))
     return tests
 
