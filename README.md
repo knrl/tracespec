@@ -17,71 +17,14 @@ TraceSpec gets there with three things that spec tools usually leave out:
 - **A deterministic checker.** Coverage is decided from files and a real test run, never by a model's say-so.
 - **A queryable trace** from ticket down to the function, which flags drift when code, tests or specs change outside the process.
 
-**Our philosophy**
+**What we optimise for**
 
-- → proof, not promises
-- → one decision from you, not an approval at every step
-- → the tool decides, the model proposes
-- → built for brownfield: changes to existing projects, not only new ones
-- → any language, standard library only, nothing to run in the background
-
-```mermaid
-flowchart TB
-    REQ(["your request<br/>(optional ticket ref)"])
-
-    subgraph SPEC["1 - Clarify and specify"]
-        direction LR
-        Q["agent asks questions"] --> DOC["proposal, delta specs<br/>rules FR-n, criteria AC-n,<br/>design, tasks"]
-    end
-    G12{{"CHECKER gates 1-2<br/>every rule has a criterion,<br/>no TBD, IDs unique"}}
-    YOU{{"YOU approve once"}}
-
-    subgraph TESTS["2 - Acceptance tests first"]
-        direction LR
-        TW["agent A writes tests<br/>named after AC-n<br/>(never sees the code)"] --> RED["tests must FAIL first<br/>a modified criterion that<br/>already passes is rejected"]
-    end
-    G3{{"CHECKER gate 3<br/>every criterion has a test,<br/>every test has a criterion"}}
-
-    subgraph BUILD["3 - Build, task by task"]
-        direction LR
-        CO["agent B writes code<br/>(never sees the tests)"] --> GREEN["real test run<br/>must pass"]
-    end
-    G4{{"CHECKER gate 4<br/>task ticked only when its<br/>criteria pass; symbols recorded"}}
-
-    subgraph CLOSE["4 - Verify and archive"]
-        direction LR
-        REV["independent review<br/>+ one developer overview"] --> ARCH["deltas merge into<br/>the living specs"]
-    end
-    G5{{"CHECKER gate 5<br/>full suite green,<br/>chain unbroken"}}
-
-    subgraph STORE["Evidence kept in the repo"]
-        direction LR
-        LS[("living specs")] ~~~ DB[("trace.db<br/>ticket - rule - criterion<br/>- test - task - symbol")] ~~~ LED[("hash-chained<br/>ledger")]
-    end
-
-    subgraph WATCH["5 - Watching afterwards"]
-        direction LR
-        EDIT["code, test or spec<br/>edited outside the process"] --> SYNC["sync hashes symbols,<br/>marks results stale"] --> AUD["audit: DRIFT finding<br/>names the rules and tests<br/>to revisit"]
-    end
-
-    REQ --> SPEC --> G12 --> YOU --> TESTS --> G3 --> BUILD --> G4 --> CLOSE --> G5
-    G5 --> STORE
-    STORE --> WATCH
-    AUD -. "update the spec, or revert" .-> SPEC
-    ASK(["/tracespec trace<br/>why does this exist?"]) -.-> DB
-
-    classDef human fill:#fde68a,stroke:#b45309,color:#1f2937
-    classDef agent fill:#bfdbfe,stroke:#1d4ed8,color:#1f2937
-    classDef tool fill:#bbf7d0,stroke:#15803d,color:#1f2937
-    classDef store fill:#e9d5ff,stroke:#7e22ce,color:#1f2937
-    class REQ,YOU,ASK human
-    class Q,DOC,TW,CO,REV agent
-    class G12,G3,G4,G5,RED,GREEN,SYNC,AUD,ARCH tool
-    class LS,DB,LED store
-```
-
-<sub>Yellow is you, blue is agent work, green is decided by the deterministic checker from files and real test runs, purple is
-what stays in your repository.</sub>
+- **Less ambiguity.** A request becomes numbered rules and concrete examples before any code exists, so "done" has one meaning.
+- **More traceability.** Any test, task or function can be followed up to the rule and the question behind it, and down to what
+  proves it.
+- **More control.** You make one decision. A checker, not the agent, says whether the work is complete, and a later edit cannot slip
+  by unnoticed.
+- **Less friction.** It works on code that already exists, in any language, with nothing but Python installed.
 
 > **Status: 0.1.0, early.** It works end to end and is tested on Windows and Linux, but the format TraceSpec writes into your project
 > may still change before 1.0; the [changelog](CHANGELOG.md) says when it does.
@@ -217,7 +160,7 @@ tests protect this function?"
 | | |
 |---|---|
 | [Getting started](docs/getting-started.md) | The same three steps, with every prompt and what you will see |
-| [How it works](docs/how-it-works.md) | Diagrams of the agents, the trace and drift, and what lands in your repo |
+| [How it works](docs/how-it-works.md) | The full flow, with its gates and evidence, plus diagrams of the agents, the trace and drift |
 | [Concepts](docs/concepts.md) | Living specs, deltas, the trace, the audit |
 | [Commands](docs/commands.md) | Every verb, flag and finding code |
 | [Customization](docs/customization.md) | Layout, stack presets, symbols, external ticket references, hooks |
