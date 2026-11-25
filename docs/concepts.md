@@ -99,5 +99,5 @@ approval; a changed delta row needs a new version approved again. Archive closes
 ## The developer overview
 
 Everything under `.tracespec/` is for the agents and needs no review. Each change also gets **one** file for people,
-`docs/features/<change>.md`: purpose, how it fits the codebase, architecture, key components (with real paths, checked), data flow,
-and a generated facts block. It is written from the code that was actually built.
+`docs/features/<change>.md`: purpose, design and key components (with real paths, checked), short and with nothing generated.
+It is written from the code that was actually built.

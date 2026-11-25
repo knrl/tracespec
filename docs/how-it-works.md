@@ -148,7 +148,7 @@ flowchart LR
 | `.tracespec/specs/<capability>/` | The **living specs**, a binary trace baseline (`trace.db`) and a hash-chained ledger (`history.jsonl`) | the tool and the agents |
 | `.tracespec/changes/<change>/` | A change in flight: proposal, delta specs, design, tasks. Archived changes move to `changes/archive/`. | the agents |
 | `.tracespec/cache/` | Local live layer. Gitignored by its own `.gitignore`. | the tool |
-| `docs/features/<change>.md` | **One short overview per feature**: purpose, how it fits the codebase, architecture, key components, data flow | **you** |
+| `docs/features/<change>.md` | **One short overview per feature**: purpose, design, key components | **you** |
 
 Commit `.tracespec/` (the baseline and ledger are what make the audit work in CI) and `docs/features/`. Nobody has to review the
 files under `.tracespec/`; your review of a proposal is a summary shown in the chat.

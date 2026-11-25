@@ -7,7 +7,7 @@ A TraceSpec change maps naturally onto a branch and a pull request:
 1. Create a branch, then `/tracespec propose ...` on it.
 2. Apply, verify and archive. Everything lands in the branch: the code, the tests, the updated living specs, the baseline, the
    archived change and the overview.
-3. Open the pull request. Reviewers read **`docs/features/<change>.md`** first (purpose, how it fits, architecture, data flow), then
+3. Open the pull request. Reviewers read **`docs/features/<change>.md`** first (purpose, design, key components), then
    the diff. They do not need to read the files under `.tracespec/`; those are for the agents and the tool.
 
 ## Commit these
@@ -64,5 +64,5 @@ A two-minute pass that catches a wrong turn while it is still cheap:
 1. **The proposal summary** the agent showed you at approval: does each rule and example say what you meant?
 2. **The overview**, `docs/features/<change>.md`: does the data flow match your mental model, and are the key components the ones you
    expected?
-3. **The diff**, with the overview's "Where to look" list as a guide.
+3. **The diff**, with the overview's key components table as a guide.
 4. For a risky area, `/tracespec trace <file>` shows every rule, criterion and test that depends on it before you change it.

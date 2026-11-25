@@ -27,7 +27,7 @@ Commands that write (the tool does the bookkeeping; the agents cannot):
     check.py <project> --task-done T-n         tick the task if its criteria pass, and record the files it changed
     check.py <project> --archive --ir-open N   close: merge the deltas into the living specs, lock, move to archive/
     check.py <project> --reconfirm <capability|ID>... --note "..."   refresh the lock after a refactor (tests must pass)
-    check.py <project> --overview              create the developer overview (docs/features/<change>.md) and refresh its facts
+    check.py <project> --overview              create the skeleton of the developer overview (docs/features/<change>.md)
 
 Reading (the trace store is binary; this is how you ask it):
     check.py <project> --trace <target> [--up|--down|--story] [--depth N] [--limit N] [--json|--mermaid]
@@ -759,10 +759,6 @@ def cmd_archive(project, layout, problems, args) -> int:
     current.record_run(project, cases, ledger.basis_nodes(project))
 
     dest = archive_dir(project) / f"{today()}-{name}"
-    overview.refresh(project, layout, name,
-                     overview.build_facts(project, layout, name, ch, ctx["ops"], caps, caps_after, ctx.get("model"),
-                                          f"archived {today()}", dest.relative_to(project).as_posix()),
-                     feat.get("title") or name)
     words = "archived: every criterion passes, no review finding open, no file outside the affected areas"
     feat.setdefault("gates", []).append({"step": "archive", "version": doc_version(ch["proposal"]), "approvedBy": ["automatic"],
                                          "words": words, "date": today(), "note": ""})
@@ -789,19 +785,15 @@ def cmd_archive(project, layout, problems, args) -> int:
 
 
 def cmd_overview(project, layout, problems, args) -> int:
-    """Create the developer overview if it is missing, and refresh its generated facts."""
-    f, stats, ctx = evaluate(project, layout, problems, opt(args, "--change"), 3, run=True, matrix=True)
-    if ctx is None or ctx["ch"]["proposal"] is None:
-        print_findings(f)
+    """Create the developer overview of a change if it is missing. It is written by hand and never rewritten by the tool."""
+    name, feat = active_change(load_state(project), opt(args, "--change"))
+    if not name or not feat:
+        print("no active change: name one with --change NAME, or start one with /tracespec propose")
         return 2
-    name, feat, ch = ctx["name"], ctx["feat"], ctx["ch"]
-    existed = overview_path(project, layout, name).is_file()
-    internal = ch["dir"].relative_to(project).as_posix()
-    facts = overview.build_facts(project, layout, name, ch, ctx["ops"], ctx["caps"], ctx["caps_after"], ctx.get("model"),
-                                 "in progress" if feat.get("phase") != "archived" else "archived", internal)
-    path = overview.refresh(project, layout, name, facts, feat.get("title") or name, create=True)
-    print(f"{'refreshed' if existed else 'created'} {path.relative_to(project).as_posix()}"
-          + ("" if existed else ": now write its narrative sections (purpose, how it fits, architecture, key components, data flow)"))
+    path, created = overview.create(project, layout, name, feat.get("title") or name)
+    rel = path.relative_to(project).as_posix()
+    print(f"created {rel}: now write its three sections (purpose, design, key components), briefly" if created
+          else f"{rel} already exists: the tool never rewrites it")
     return 0
 
 

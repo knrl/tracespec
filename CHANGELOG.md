@@ -6,6 +6,15 @@ format of what TraceSpec writes into a project; the notes say so when they do.
 
 ## [Unreleased]
 
+### Changed
+
+- **The developer overview is much shorter.** `docs/features/<change>.md` now has three sections, Purpose, Design (how it fits, the
+  shape, the data flow, the key decision) and Key components, about 30 lines in all. The generated "Facts" block (behavior at a
+  glance, where to look, how it is verified) is gone, and so is `OVERVIEW006`: rules, criteria, tests and code locations are one
+  `--trace` away. `--overview` now only creates the skeleton and never rewrites a file; archive no longer touches it. The length
+  warning (`OVERVIEW002`) is 60 non-blank lines instead of 120. An overview written in the old format still passes
+  (an "Architecture" heading is accepted for "Design", and an old facts block is left alone).
+
 ### Added
 
 - **`check.py <folder> --init`** writes `.tracespec.json` from what the folder looks like, so a developer can set up a project

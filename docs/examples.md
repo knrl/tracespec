@@ -61,21 +61,9 @@ rule FR-1 [checkout]  The total of a cart is the sum of its item prices as a flo
 
 ## The developer overview
 
-`docs/features/add-discount.md` is the one file a reviewer reads. Its narrative sections are written from the code that was built; the
-block at the end is generated:
-
-```
-### Behavior at a glance
-| Rule | Change   | What it says                                                                       |
-| FR-1 | modified | The total of a cart is the sum of its item prices as a float, before any discount |
-| FR-3 | added    | An order whose total is over 10000 gets 10% off                                    |
-| FR-2 | removed  | A gift card is accepted as a payment method                                        |
-
-### Where to look
-- Code: `shop/cart.py`
-- Tests: `tests/test_cart.py`
-- Living specs: `.tracespec/specs/checkout/spec.md`
-```
+`docs/features/add-discount.md` is the one file a reviewer reads: three short sections written from the code that was built
+(see it in [`examples/shop/docs/features`](../examples/shop/docs/features)). It leaves out the rules, criteria and test lists on purpose;
+`--trace` answers those.
 
 ## Drift: edit a linked function
 

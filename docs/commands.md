@@ -53,7 +53,7 @@ The tool does the bookkeeping; the build agents cannot write these.
 | `--approve build --by NAME --words "..."` | Record a build approval (only when asked for) |
 | `--amend --note "..."` | Record an edit of an approved proposal that changed no delta row |
 | `--task-start T-n` / `--task-done T-n` | Bracket a task. `--task-done` ticks it only when its criteria pass, and records the symbols touched. |
-| `--overview` | Create `docs/features/<change>.md` and refresh its generated facts |
+| `--overview` | Create the skeleton of `docs/features/<change>.md` (it never rewrites an existing one) |
 | `--archive --ir-open N` | Close the change. `N` is the number of review findings still open and must be 0. |
 | `--reconfirm <capability or ID>... --note "..."` | Refresh the baseline after a refactor. Every criterion must pass. |
 | `--install-hooks` | Git hooks (post-commit, post-merge, post-checkout) that run `--sync` and never block |
@@ -130,7 +130,7 @@ Warnings never fail a gate. Errors do.
 | CHG001, CHG002 | A changed file lies outside "Affected areas"; the scope check was skipped because there is no git repository (a warning) |
 | LINK001 | A rule or criterion has no code recorded on its tasks (warning) |
 | REF001, REF002 | An external reference is missing or does not match `refPattern` (only when configured) |
-| OVERVIEW001 ... OVERVIEW007 | The developer overview is missing, lacks a section, is a placeholder, has no facts block, names a component that does not exist, is empty, or is too long (a warning) |
+| OVERVIEW001 ... OVERVIEW007 | The developer overview is missing, lacks a section (purpose, design, key components), is a placeholder or empty, names a component that does not exist, or is too long (a warning above 60 lines) |
 | DRIFT-SPEC, DRIFT-CODE, DRIFT-TEST | The audit: a spec, a linked symbol, or a linked test differs from the baseline |
 | UNCOVERED | The audit: a criterion has no passing test in a fresh run |
 | UNLINKED-TEST | The audit: a test names a criterion no living spec defines (a warning) |

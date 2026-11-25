@@ -129,19 +129,12 @@ OVERVIEW = textwrap.dedent("""\
     # {name}
     ## Purpose
     This change adds totals and discounts to checkout so that carts are priced correctly for customers.
-    ## How it fits into the codebase
-    It extends the existing cart module and is called by the checkout screen; nothing else is touched.
-    ## Architecture
-    A single pure function computes the total from the list of item prices.
+    ## Design
+    A single pure function computes the total from the list of item prices; the checkout screen calls it and nothing else is touched.
     ## Key components
     | Component | Path | Responsibility |
     |---|---|---|
     | Cart totals | `shop/cart.py` | Computes the total of a cart |
-    ## Data flow
-    1. The checkout passes the item prices. 2. The function sums them. 3. The total is returned.
-    ## Facts (generated)
-    <!-- tracespec:facts:begin -->
-    <!-- tracespec:facts:end -->
     """)
 
 
@@ -788,7 +781,7 @@ class OverviewTests(unittest.TestCase):
             self.assertIn("OVERVIEW001", out)
             self.assertFalse(env.spec_path().exists())
 
-    def test_overview_command_creates_a_skeleton_with_generated_facts(self):
+    def test_overview_command_creates_a_short_skeleton_and_never_rewrites_it(self):
         with tempfile.TemporaryDirectory() as tmp:
             env = self.ready(tmp)
             env.overview_path("add-cart").unlink()
@@ -796,25 +789,27 @@ class OverviewTests(unittest.TestCase):
             self.assertEqual(rc, 0, out)
             self.assertIn("created", out)
             text = env.overview_path("add-cart").read_text()
-            self.assertIn("tracespec:facts:begin", text)
-            self.assertIn("### Behavior at a glance", text)
-            self.assertIn("| FR-1 | added | Total is the sum of items |", text)
-            self.assertIn("`shop/cart.py`", text)                              # from the files recorded on the tasks
-            self.assertIn("`tests/test_cart.py`", text)
-            self.assertEqual(env.codes(5).get("OVERVIEW005"), "error")          # the narrative is still placeholders
-            before = env.overview_path("add-cart").read_text()
-            env.run("--overview")
-            self.assertEqual(before, env.overview_path("add-cart").read_text())   # refreshing is idempotent
+            for heading in ("## Purpose", "## Design", "## Key components"):
+                self.assertIn(heading, text)
+            for gone in ("tracespec:facts", "Where to look", "Behavior at a glance", "## Data flow", "## How it fits",
+                         "## Architecture", "## Facts"):
+                self.assertNotIn(gone, text)
+            self.assertLess(len(text.splitlines()), 25)
+            self.assertEqual(env.codes(5).get("OVERVIEW005"), "error")          # the skeleton is still placeholders
+            env.write_overview("add-cart", "# mine\n")
+            rc, out = env.run("--overview")
+            self.assertIn("already exists", out)
+            self.assertEqual(env.overview_path("add-cart").read_text(), "# mine\n")      # a written overview is left alone
 
     def test_narrative_is_checked_for_being_there_and_honest(self):
         base = OVERVIEW.format(name="add-cart")
-        arch = "## Architecture\nA single pure function computes the total from the list of item prices.\n"
+        design = ("## Design\nA single pure function computes the total from the list of item prices; the checkout screen calls it "
+                  "and nothing else is touched.\n")
         cases = {
-            "OVERVIEW004": base.replace(arch, ""),
+            "OVERVIEW004": base.replace(design, ""),
             "OVERVIEW007": base.replace("This change adds totals and discounts to checkout so that carts are priced correctly for customers.", "x"),
             "OVERVIEW003": base.replace("`shop/cart.py`", "`shop/missing.py`"),
-            "OVERVIEW006": base.replace("<!-- tracespec:facts:begin -->\n", "").replace("<!-- tracespec:facts:end -->\n", ""),
-            "OVERVIEW002": base + "\n" * 130,
+            "OVERVIEW002": base + "A line of padding.\n" * 70,
         }
         for code, text in cases.items():
             with tempfile.TemporaryDirectory() as tmp:
@@ -828,17 +823,21 @@ class OverviewTests(unittest.TestCase):
             self.assertNotIn("OVERVIEW003", env.codes(5))
             self.assertEqual({k for k, v in env.codes(5).items() if v == "error"}, set())
 
-    def test_facts_are_refreshed_at_archive_and_the_narrative_is_kept(self):
+    def test_archive_leaves_the_overview_exactly_as_written(self):
         with tempfile.TemporaryDirectory() as tmp:
             env = self.ready(tmp)
-            narrative = env.overview_path("add-cart").read_text().split("## Facts (generated)")[0]
+            before = env.overview_path("add-cart").read_text()
             self.assertEqual(env.run("--archive", "--ir-open", "0")[0], 0)
-            text = env.overview_path("add-cart").read_text()
-            self.assertTrue(text.startswith(narrative))
-            self.assertIn("**Status:** archived", text)
-            self.assertIn(".tracespec/changes/archive/", text)
-            self.assertIn("| FR-1 | added |", text)
-            self.assertIn("2 of 2 rules and 2 of 2 criteria pass", text)
+            self.assertEqual(env.overview_path("add-cart").read_text(), before)
+
+    def test_an_older_overview_with_architecture_and_a_facts_block_still_passes(self):
+        old = OVERVIEW.format(name="add-cart").replace("## Design", "## Architecture") + (
+            "## Data flow\n1. The checkout passes the item prices. 2. The function sums them.\n"
+            "## Facts (generated)\n<!-- tracespec:facts:begin -->\nold facts\n<!-- tracespec:facts:end -->\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            env = self.ready(tmp)
+            env.write_overview("add-cart", old)
+            self.assertEqual({k for k, v in env.codes(5).items() if v == "error"}, set())
 
 
 class RegressionTests(unittest.TestCase):

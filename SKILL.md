@@ -12,7 +12,7 @@ Arguments: `$ARGUMENTS`. The first word may be a verb (below); a bare request me
 
 You take a request for an **existing project** through a change: explore it, propose it, apply it, verify it, archive it. The specs live in two places. **Living specs** (`.tracespec/specs/<capability>/spec.md`) say how each capability behaves now; they change only by archiving a change. A **change** (`.tracespec/changes/<change>/`) says what differs, as a delta. The delta is approved before any test, the tests are written before the code, by **different agents** that never see each other's work, and a tool, not you, decides whether every rule is covered by a passing test.
 
-**Two kinds of files.** Everything the agents work from (living specs, changes, locks, ledgers, matrices) lives in the dedicated directory `.tracespec/` and needs no human review. For people there is exactly **one** file per change: the **developer overview** `docs/features/<change>.md` (purpose, how it fits into the codebase, architecture, key components, data flow, and a generated facts block). It is written at the end of the change from the code that was actually built, and the developer reads it to build a mental model of the feature.
+**Two kinds of files.** Everything the agents work from (living specs, changes, locks, ledgers, matrices) lives in the dedicated directory `.tracespec/` and needs no human review. For people there is exactly **one** short file per change: the **developer overview** `docs/features/<change>.md` (purpose, design, key components; nothing generated). It is written at the end of the change from the code that was actually built, and the developer reads it to build a mental model of the feature. The rules, criteria, tests and code locations are one `--trace` away, so the overview does not repeat them.
 
 **The developer is stopped as little as possible:** the answers, and one approval (the proposal). Everything else is a check a tool decides. Read [process.md](process.md) once per conversation.
 
@@ -27,7 +27,7 @@ The user is a developer. Talk like a colleague, briefly. Use the language the de
 | `apply [change]` | [workflows/apply.md](workflows/apply.md) | Skeleton, tests (fail first), then code task by task; resumable by checkbox | nothing, unless a spec gap needs a decision |
 | `update [change]` | [workflows/update.md](workflows/update.md) | Revise the documents: an amendment, or a new version approved again | confirms |
 | `verify [change]` | [workflows/verify.md](workflows/verify.md) | Converge, independent review, write the developer overview, readiness report | nothing |
-| `archive [change]` | [workflows/archive.md](workflows/archive.md) | Merge the deltas into the living specs, lock them, refresh the overview's facts, move the change to the archive | nothing when clean |
+| `archive [change]` | [workflows/archive.md](workflows/archive.md) | Merge the deltas into the living specs, lock them, move the change to the archive | nothing when clean |
 | `audit` | [workflows/audit.md](workflows/audit.md) | Find drift in the living specs, tests and code; resolve it on purpose | decides how to resolve |
 | `trace <anything>` | [workflows/trace.md](workflows/trace.md) | Ask how a rule, criterion, test, task, file, symbol or ticket relates to the rest | reads |
 | `list` · `show <change>` · `view` | below | Changes with progress, a delta view, a one-screen dashboard | reads |
@@ -116,7 +116,7 @@ python <skill folder>/tools/check.py <project> --reconfirm <capability|ID>... --
 python <skill folder>/tools/check.py <project> --trace <target> [--up|--down|--story] [--depth N] [--limit N] [--json|--mermaid]
 python <skill folder>/tools/check.py <project> --sync | --install-hooks                 # the live layer; git hooks that run --sync
 python <skill folder>/tools/check.py <project> --matrix | --export FILE [--living]      # a matrix, printed or written on request
-python <skill folder>/tools/check.py <project> --overview               # create docs/features/<change>.md, refresh its generated facts
+python <skill folder>/tools/check.py <project> --overview               # create the skeleton of docs/features/<change>.md (never rewrites it)
 python <skill folder>/tools/check.py <project> --list | --view | --show <change> [--diff] | --next-id FR|NFR|AC|NG
 python <skill folder>/tools/check.py --fingerprint <file>   |   <project> --fingerprint code   |   --detect <project>
 python <skill folder>/tools/results.py <project> [AC-n ...]            # run the tests; one safe line per test
@@ -145,13 +145,13 @@ Nothing here is judged by a model. The verdicts come from the tables in the docu
 | TEST005 | A **new** test (not in the baseline) must name an AC. Existing tests are exempt | 3 |
 | TEST006 (warning) / TEST007 | A new test that already passes: the test writer must explain. **A MODIFIED criterion whose tests still pass is an error** | 3 |
 | TEST003 / TEST004 / TASK004 | Nothing fails (except `knownFailing`); every criterion passes; every task is ticked | 4 |
-| OVERVIEW001–007 | The developer overview `docs/features/<change>.md` exists, has purpose, how it fits, architecture, key components and data flow with real content, no placeholders and a facts block, and every path in its component table exists (a warning above 120 lines) | 5 |
+| OVERVIEW001–007 | The developer overview `docs/features/<change>.md` exists, has purpose, design and key components with real content and no placeholders, and every path in its component table exists (a warning above 60 lines) | 5 |
 | CHG001 | No changed file outside "Affected areas" (tests, `docs/`, `.tracespec/`, build folders and files already dirty at the baseline are exempt; skipped without git) | 4 |
 | REF001 / REF002 | Only when `layout.refRequired` or `layout.refPattern` is set: every goal has an external reference, and each matches the pattern | 2 |
 | LINK001 (warning) | An ADDED or MODIFIED rule or criterion has no code recorded on its tasks (use `--task-start` and `--task-done`) | 4 |
 | DRIFT-SPEC / DRIFT-CODE / DRIFT-TEST / UNCOVERED | The audit: the living specs, the linked code symbols and tests, against the baseline | audit |
 
-There are **no matrix files**. `check.py --matrix` prints the change's matrix, `check.py --export FILE [--living]` writes Markdown on request, and `--trace` answers any single question from the live graph. The overview's facts block pulls its counts from the same checks.
+There are **no matrix files**. `check.py --matrix` prints the change's matrix, `check.py --export FILE [--living]` writes Markdown on request, and `--trace` answers any single question from the live graph.
 
 ## Living specs, the trace store and the ledger
 

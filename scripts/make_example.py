@@ -160,37 +160,27 @@ TASKS_1 = """# Tasks: Add a cart
 
 OVERVIEW_1 = """# Add a cart
 
-> Developer overview. Read this to understand the feature without opening the agent files in `.tracespec/`.
+> Developer overview: read this to understand the feature without opening the agent files in `.tracespec/`. Keep it short.
 
 ## Purpose
 
-Shoppers need to see what their cart costs and to pay for it with a gift card. This change adds the first rules of the `checkout`
+Shoppers need to see what their cart costs and to pay with a gift card. This change adds the first rules of the `checkout`
 capability: the total of a cart, and gift cards as a payment method.
 
-## How it fits into the codebase
+## Design
 
-It adds one module, `shop/cart.py`, next to `shop/catalog.py`. The cart reads item prices as whole numbers in cents, the same unit the
-catalogue uses, and does not call or change the catalogue. Nothing existing calls the cart yet.
+One new module, `shop/cart.py`, next to `shop/catalog.py`. It is two pure functions with no state: `total` adds up item prices and
+`accept_gift` recognises a gift card by its `GC-` prefix. Prices are whole numbers in cents, the unit the catalogue already uses, so the
+cart never calls or changes the catalogue. Nothing existing calls the cart yet.
 
-## Architecture
-
-Two pure functions with no state. `total` adds up prices; `accept_gift` decides whether a card is a gift card.
+Key decision: plain functions rather than a `Cart` class, because there is no state to hold. A class can wrap them later without
+changing callers.
 
 ## Key components
 
 | Component | Path | Responsibility |
 |---|---|---|
 | Cart pricing | `shop/cart.py` | Totals a list of item prices and recognises gift cards |
-
-## Data flow
-
-1. The caller passes item prices (cents) to `total` and gets their sum.
-2. To pay, the caller passes a card identifier to `accept_gift`, which answers whether it is a gift card (`GC-` prefix).
-
-## Facts (generated)
-
-<!-- tracespec:facts:begin -->
-<!-- tracespec:facts:end -->
 """
 
 TEST_1 = '''from shop.cart import accept_gift, total
@@ -322,39 +312,34 @@ TASKS_2 = """# Tasks: Add a discount
 
 OVERVIEW_2 = """# Add a discount
 
-> Developer overview. Read this to understand the feature without opening the agent files in `.tracespec/`.
+> Developer overview: read this to understand the feature without opening the agent files in `.tracespec/`. Keep it short.
 
 ## Purpose
 
 Larger orders should cost less, and gift cards are moving to the payments service. This change gives orders over 100.00 a 10% discount
 and removes gift card handling from the cart.
 
-## How it fits into the codebase
+## Design
 
-It only touches `shop/cart.py`. `total` now returns a float and applies the discount; `accept_gift` is gone, so any caller must use
-the payments service instead (`payments.accept_gift`). The catalogue is untouched.
+Only `shop/cart.py` changes. `total` now returns a float and applies the discount inside itself, so it can only be applied once:
 
-## Architecture
+```mermaid
+flowchart LR
+    A["item prices (cents)"] --> B["total: sum as float"] --> C{"over 10000?"}
+    C -- yes --> D["x 0.9"] --> E["result"]
+    C -- no --> E
+```
 
-Still two small pieces: one function that prices a cart, and a constant for the discount threshold. The discount lives inside `total`,
-so it can only be applied once.
+`accept_gift` is gone: callers must use the payments service (`payments.accept_gift`) instead. The catalogue is untouched.
+
+Key decision: the threshold is a module constant, `DISCOUNT_THRESHOLD`, not a parameter, because every caller wants the same rule. If
+tiers are ever needed, that constant becomes a table.
 
 ## Key components
 
 | Component | Path | Responsibility |
 |---|---|---|
 | Cart pricing | `shop/cart.py` | Totals item prices and applies the 10% discount over the threshold |
-
-## Data flow
-
-1. The caller passes item prices (cents) to `total`.
-2. `total` sums them as a float.
-3. If the sum is over the threshold (10000), it multiplies by 0.9. The result is returned.
-
-## Facts (generated)
-
-<!-- tracespec:facts:begin -->
-<!-- tracespec:facts:end -->
 """
 
 TESTS_2 = '''from shop.cart import total
@@ -429,7 +414,6 @@ def build(out: Path) -> None:
         check(proj, "--gate", "4")
         check(proj, "--overview")
         w(proj / "docs" / "features" / "add-cart.md", OVERVIEW_1)
-        check(proj, "--overview")
         check(proj, "--archive", "--ir-open", "0")
 
         # ---- change 2
@@ -454,7 +438,6 @@ def build(out: Path) -> None:
         check(proj, "--gate", "4")
         check(proj, "--overview")
         w(proj / "docs" / "features" / "add-discount.md", OVERVIEW_2)
-        check(proj, "--overview")
         check(proj, "--archive", "--ir-open", "0")
         check(proj, "--audit")                                          # a full audit, with a fresh test run
         w(proj / "README.md", README_EXAMPLE)

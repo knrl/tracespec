@@ -24,7 +24,7 @@ Only the proposal is approved by the developer. Every other gate is a tool check
 
 ## Two kinds of files
 - **For the agents: `.tracespec/`.** Living specs, changes, locks, ledgers and matrices. They are what the agents and the tool work from. Nobody has to review them; the developer's review is the short summary in the chat at the approval.
-- **For people: `docs/features/<change>.md`.** One concise overview per change: purpose, how it fits into the existing codebase, architecture, key components, data flow. The narrative is written by the coordinator from the code that was built, and `check.py` refuses to close the change if it is missing, empty, a placeholder, or names a component path that does not exist. A generated facts block at its end (behaviour at a glance, where to look, how it is verified) is refreshed by the tool.
+- **For people: `docs/features/<change>.md`.** One short overview per change: purpose, design (how it fits, the shape, the data flow, the key decision) and key components. It is written by the coordinator from the code that was built, and `check.py` refuses to close the change if it is missing, empty, a placeholder, or names a component path that does not exist. Nothing in it is generated; rules, criteria, tests and code locations are one `--trace` away.
 
 ## Why this order
 - **Clarify before the documents:** they must hold nothing that is a guess. Each gap is answered, taken from the repo or the living specs, or written down as an assumption the developer confirms.
