@@ -142,12 +142,8 @@ tests protect this function?"
 
 ## Why TraceSpec?
 
-- **Agents build against a written contract**, and you get proof afterwards, not "the agent said it works".
-- **Tests and code come from different agents** that never see each other's work (a hook enforces it), so they can only agree
-  through the specification.
-- **Coverage is decided by a checker** from a real test run. The model never gets to say "covered".
+- **Proof, not "the agent said it works".** You get a recorded chain you can audit and query afterwards.
 - **One decision from you.** Answer questions, approve once. Everything else is a check that passes or refuses with a reason.
-- **It stays true.** Edits made outside the process show up as findings that name the rules and tests to revisit.
 
 ## Learn more
 
