@@ -6,6 +6,13 @@ format of what TraceSpec writes into a project; the notes say so when they do.
 
 ## [Unreleased]
 
+### Changed
+
+- **A smaller `.tracespec.json`.** The list of pre-existing test names moved from the state file to
+  `.tracespec/changes/<change>/baseline.json` (removed at archive), and an archived change now keeps only a small stub in the state
+  file instead of its rule hashes, gates and baselines. Projects with the old format keep working; the next `--baseline` and the next
+  archive shrink the file.
+
 ## [0.1.0] - 2026-11-25
 
 First public release.

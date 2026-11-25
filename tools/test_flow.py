@@ -716,6 +716,27 @@ class GitTests(unittest.TestCase):
             (env.root / "stray.py").unlink()
             self.assertEqual(env.run("--archive", "--ir-open", "0")[0], 0)
 
+    def test_the_state_file_does_not_grow_with_tests_or_finished_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = Env(tmp)
+            env.add_change("add-cart", DELTA_1, TASKS_OPEN)
+            self.assertEqual(env.run("--baseline")[0], 0)
+            feat = env.feat("add-cart")
+            self.assertNotIn("baselineTests", feat)                 # the test names live in the change folder
+            self.assertNotIn("baselineDirty", feat)
+            baseline = env.root / ".tracespec/changes/add-cart/baseline.json"
+            self.assertIn("tests", json.loads(baseline.read_text()))
+            self.assertEqual(env.approve()[0], 0)
+            env.tasks_file("add-cart").write_text(TASKS_DONE_1)
+            self.assertEqual(env.run("--archive", "--ir-open", "0")[0], 0)
+            self.assertEqual(list((env.root / ".tracespec/changes/archive").rglob("baseline.json")), [])
+            stub = env.feat("add-cart")                              # what is left of a finished change is a small stub
+            self.assertEqual(stub["phase"], "archived")
+            self.assertIn("archivedAs", stub)
+            for gone in ("spec", "gates", "baselineTests", "amendments"):
+                self.assertNotIn(gone, stub)
+            self.assertIn("approved", env.run("--list")[1])         # and list still reads it
+
 
 class OverviewTests(unittest.TestCase):
     def ready(self, tmp):

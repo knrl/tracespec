@@ -332,14 +332,28 @@ def check_deltas(project: Path, ch: dict, name: str, caps: dict[str, dict], f: F
     return caps_after, ops, touched
 
 
-def out_of_scope(project: Path, layout: dict, feat: dict, text: str) -> list[str] | None:
+def baseline_file(project: Path, name: str) -> Path:
+    return change_dir(project, name) / "baseline.json"
+
+
+def read_baseline(project: Path, name: str, feat: dict) -> tuple[list[str] | None, list[str]]:
+    """The test names that existed before the change and the files that were already dirty. They live in the change folder
+    (removed at archive), not in the state file; projects from before 0.1.1 kept them in the state file."""
+    try:
+        d = json.loads(baseline_file(project, name).read_text(encoding="utf-8"))
+        return d.get("tests"), d.get("dirty") or []
+    except (OSError, ValueError):
+        return feat.get("baselineTests"), feat.get("baselineDirty") or []
+
+
+def out_of_scope(project: Path, layout: dict, name: str, feat: dict, text: str) -> list[str] | None:
     """Changed files that are neither tests, protected, build folders nor in 'Affected areas'. None: no git."""
     from common import SKIP_DIRS
     files = ledger.changed_files(project)
     if files is None:
         return None
     allowed = affected_paths(text)
-    skip = set(feat.get("baselineDirty") or [])
+    skip = set(read_baseline(project, name, feat)[1])
     bad = []
     for rel in files:
         if rel in skip or rel == ".gitignore" or rel.startswith(".tracespec") or classify(rel, layout) in ("protected", "test"):
@@ -427,7 +441,7 @@ def evaluate(project: Path, layout: dict, problems: list[str], change: str | Non
             run_info = f"{len(cases)} run, {sum(1 for c in cases if c['status'] in ('fail', 'error'))} failing"
     ctx["cases"] = cases
     if gate >= 3 or matrix:
-        baseline = feat.get("baselineTests")
+        baseline = read_baseline(project, name, feat)[0]
         effective = tracing.effective_spec(caps_after, design_rows_text(ch["text"]))
         other_ac = {i for cap, st in caps.items() if cap not in caps_after for i in st["criteria"]}
         model = tracing.build(effective, ch["tasks_text"], cases, baseline, ops, other_ac)
@@ -436,7 +450,7 @@ def evaluate(project: Path, layout: dict, problems: list[str], change: str | Non
         ctx["run_info"] = run_info
         ctx["model"] = model
     if gate >= 4:
-        bad = out_of_scope(project, layout, feat, ch["text"])
+        bad = out_of_scope(project, layout, name, feat, ch["text"])
         if bad:
             f.add("CHG001", "error", "changed files outside the change's 'Affected areas': " + ", ".join(bad[:8]) +
                   (" ..." if len(bad) > 8 else "") + ". Revert them, or add them to design.md (an amendment if no delta row "
@@ -573,11 +587,15 @@ def record_baseline(project: Path, layout: dict, state: dict, change: str | None
     if err:
         print("CANNOT RUN: " + err)
         return 2
-    feat["baselineTests"] = sorted(c["name"] for c in cases)
-    feat["baselineDirty"] = ledger.changed_files(project) or []
+    dirty = ledger.changed_files(project) or []
+    for old in ("baselineTests", "baselineDirty"):        # moved out of the state file
+        feat.pop(old, None)
+    d = baseline_file(project, name)
+    d.parent.mkdir(parents=True, exist_ok=True)
+    d.write_text(json.dumps({"tests": sorted(c["name"] for c in cases), "dirty": dirty}), encoding="utf-8")
     save_state(project, state)
     bad = [c for c in cases if c["status"] in ("fail", "error")]
-    print(f"baseline recorded: {len(cases)} tests, {len(bad)} failing, {len(feat['baselineDirty'])} uncommitted file(s)")
+    print(f"baseline recorded: {len(cases)} tests, {len(bad)} failing, {len(dirty)} uncommitted file(s)")
     for c in bad:
         print(f"FAIL {c['name']} -- {c['reason']}")
     if bad:
@@ -716,8 +734,15 @@ def cmd_archive(project, layout, problems, args) -> int:
                f"| Archive | {doc_version(ch['proposal'])} | {words} | automatic | {today()} | archive | "
                f"{fingerprint_code(project, layout)} |")
     archive_dir(project).mkdir(parents=True, exist_ok=True)
+    baseline_file(project, name).unlink(missing_ok=True)
     shutil.move(str(ch["dir"]), str(dest))
-    feat["phase"], feat["archivedAs"] = "archived", dest.relative_to(project).as_posix()
+    # An archived change keeps a small stub: the approval record is in its review_log.md and the ledger, the rest is not read again.
+    approved = feat.get("spec") or {}
+    stub = {"title": feat.get("title"), "tier": feat.get("tier", "standard"), "phase": "archived",
+            "archivedAs": dest.relative_to(project).as_posix(),
+            "approvedBy": approved.get("approvedBy"), "approvedOn": approved.get("approvedOn")}
+    feat.clear()
+    feat.update({k: v for k, v in stub.items() if v is not None})
     if state.get("activeChange") == name:
         state["activeChange"] = None
     save_state(project, state)
@@ -799,7 +824,8 @@ def cmd_list(project) -> int:
         ch = load_change(project, name) if feat.get("phase") != "archived" else None
         t = tracing.parse_tasks(ch["tasks_text"]) if ch else {}
         prog = f"{sum(1 for x in t.values() if x['done'])}/{len(t)} tasks" if t else "no tasks"
-        approved = "approved" if (feat.get("spec") or {}).get("status") == "approved" else "draft"
+        approved = ("approved" if feat.get("phase") == "archived" or (feat.get("spec") or {}).get("status") == "approved"
+                    else "draft")
         rows.append((name, feat.get("phase") or "propose", approved, prog, feat.get("tier", "standard")))
     if not rows:
         print("No changes.")

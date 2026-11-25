@@ -193,14 +193,13 @@ Teams that use a tracker can tie the chain to it; teams that do not simply leave
       "title": "Add discount", "tier": "standard", "phase": "propose",
       "spec": { "status": "draft" },
       "gates": [],
-      "baselineTests": ["set by check.py --baseline"], "baselineDirty": ["set by check.py --baseline"],
       "returnTo": null
     }
   }
 }
 ```
 
-- `phase`: `propose`, `apply` (after the approval), `archived` (with `archivedAs`). `spec` is filled by `--approve change`: `version`, `status: "approved"`, `approvedBy`, `approvedOn`, `fingerprint`, `rows` (hashes of the delta rows) and `baseRows` (hashes of the living rows being modified or removed). `amendments` lists the recorded amendments.
+- `phase`: `propose`, `apply` (after the approval), `archived` (with `archivedAs`). `spec` is filled by `--approve change`: `version`, `status: "approved"`, `approvedBy`, `approvedOn`, `fingerprint`, `rows` (hashes of the delta rows) and `baseRows` (hashes of the living rows being modified or removed). `amendments` lists the recorded amendments. The test names that existed before the change (`check.py --baseline`) are not kept here: they go to `.tracespec/changes/<change>/baseline.json`, which is removed at archive. When a change is archived its entry shrinks to a stub (`title`, `tier`, `phase`, `archivedAs`, `approvedBy`, `approvedOn`); the approval record stays in the archived `review_log.md` and the ledger. The state file therefore stays small however many changes and tests the project has.
 - `layout` is read by the tools. Globs use `*` (inside a folder) and `**` (across folders); a plain folder name means everything below it. `tests` is hidden from the coder and the only place the tester writes; `code` is hidden from the tester; a path in both counts as a test; neither agent writes `protected`. `testCmd` runs the whole suite and writes JUnit XML to `junit` (a file or glob). `knownFailing` holds the exact names of tests that already failed in the baseline. Change `layout` only with the developer, and say so in the log.
 - `returnTo`: `{ "phase": "propose", "reason": "spec gap" }` while work went back to an earlier phase. Clear it when that phase is done.
 
